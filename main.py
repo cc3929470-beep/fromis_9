@@ -8,26 +8,73 @@ st.set_page_config(
     layout="centered"
 )
 
-# 프로미스나인 감성 Custom CSS
+# 프로미스나인 감성 Custom CSS (업그레이드 버전)
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
     * { font-family: 'Pretendard', sans-serif; }
     
+    /* 1. 움직이는 파스텔 그라데이션 애니메이션 배경 */
     .stApp {
-        background: linear-gradient(135deg, #E8FAF8 0%, #FFF1F5 50%, #EBF4FF 100%) !important;
+        background: linear-gradient(-45deg, #E8FAF8, #FFF1F5, #EBF4FF, #dffff2) !important;
+        background-size: 400% 400% !important;
+        animation: gradientBG 12s ease infinite !important;
+    }
+    
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
 
+    /* 2. 메인 컨텐츠 영역 글래스모피즘 (투명 유리 효과) */
+    .block-container {
+        background: rgba(255, 255, 255, 0.45);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-radius: 30px;
+        padding: 3rem 2rem;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px 0 rgba(142, 209, 252, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    /* 3. 헤더 영역 업그레이드 (반짝이는 빛 효과 추가) */
     .fromis-header {
         text-align: center;
-        padding: 25px 20px;
-        background: rgba(255, 255, 255, 0.75);
+        padding: 30px 20px;
+        background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(16px);
         border-radius: 28px;
-        border: 2px solid rgba(255, 255, 255, 0.8);
-        box-shadow: 0 15px 35px rgba(93, 226, 164, 0.15);
-        margin-bottom: 25px;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 15px 35px rgba(93, 226, 164, 0.2);
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* 헤더 대각선 빛 애니메이션 */
+    .fromis-header::before {
+        content: '';
+        position: absolute;
+        top: -50%; left: -50%;
+        width: 200%; height: 200%;
+        background: linear-gradient(
+            to right, 
+            rgba(255,255,255,0) 0%, 
+            rgba(255,255,255,0.6) 50%, 
+            rgba(255,255,255,0) 100%
+        );
+        transform: rotate(45deg);
+        animation: shine 4s infinite;
+        pointer-events: none;
+    }
+
+    @keyframes shine {
+        0% { transform: translateX(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) rotate(45deg); }
     }
 
     .fromis-badge {
@@ -35,40 +82,55 @@ st.markdown("""
         background: linear-gradient(90deg, #3BCEAC 0%, #FF7597 100%);
         color: white;
         font-weight: 700;
-        font-size: 0.85rem;
-        padding: 6px 18px;
+        font-size: 0.9rem;
+        padding: 8px 22px;
         border-radius: 20px;
         letter-spacing: 1.2px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 10px rgba(255, 117, 151, 0.3);
     }
 
     .fromis-title {
-        font-size: 2.2rem;
+        font-size: 2.3rem;
         font-weight: 800;
         background: linear-gradient(90deg, #FF4B8B, #22D3EE);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin: 5px 0;
+        margin: 8px 0;
     }
 
-    div[data-testid="stRadio"] > label { font-weight: 700 !important; color: #2D3748 !important; }
+    /* 선택지(라디오 버튼) 디자인 */
+    div[data-testid="stRadio"] > label { 
+        font-weight: 800 !important; 
+        color: #2D3748 !important; 
+        font-size: 1.05rem;
+    }
 
     div[role="radiogroup"] {
-        background: rgba(255, 255, 255, 0.6);
-        padding: 15px;
+        background: rgba(255, 255, 255, 0.75);
+        padding: 20px;
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
     }
 
+    /* 4. 정답 제출 버튼 디자인 (입체감 + 호버 시 떠오르는 효과) */
     .stButton>button {
         background: linear-gradient(135deg, #FF7597 0%, #FF4B8B 100%) !important;
         color: white !important;
-        font-weight: 700 !important;
-        border-radius: 18px !important;
+        font-weight: 800 !important;
+        font-size: 1.1rem !important;
+        border-radius: 20px !important;
         border: none !important;
-        padding: 10px 28px !important;
+        padding: 12px 30px !important;
         box-shadow: 0 6px 20px rgba(255, 75, 139, 0.3) !important;
         width: 100%;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(255, 75, 139, 0.5) !important;
     }
 </style>
 """, unsafe_allow_html=True)
