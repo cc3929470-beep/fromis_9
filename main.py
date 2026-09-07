@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -49,6 +48,24 @@ st.markdown("""
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 5px 0;
+    }
+
+    .audio-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        border-radius: 20px;
+        padding: 20px;
+        border: 2px solid #FFF;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .audio-card p {
+        color: #FF4B8B;
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
     }
 
     div[data-testid="stRadio"] > label { font-weight: 700 !important; color: #2D3748 !important; }
@@ -137,130 +154,32 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 영상은 안 보이고 오디오만 5초 재생되는 JS 플레이어
-def render_hidden_youtube_player(yt_id, start_sec):
-    player_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-            body {{
-                font-family: 'Pretendard', sans-serif;
-                margin: 0;
-                padding: 5px;
-                background: transparent;
-                text-align: center;
-            }}
-            .card {{
-                background: rgba(255, 255, 255, 0.85);
-                backdrop-filter: blur(12px);
-                border-radius: 20px;
-                padding: 20px;
-                border: 2px solid #FFF;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            }}
-            .btn-play {{
-                background: linear-gradient(135deg, #3BCEAC, #22D3EE);
-                border: none;
-                color: white;
-                font-weight: 700;
-                font-size: 1rem;
-                padding: 12px 30px;
-                border-radius: 50px;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
-                transition: all 0.2s ease;
-            }}
-            .btn-play:hover {{ transform: scale(1.03); }}
-            .status {{
-                margin-top: 12px;
-                font-size: 0.85rem;
-                color: #FF4B8B;
-                font-weight: 700;
-            }}
-            #player-container {{
-                display: none;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <button class="btn-play" onclick="playAudio5Sec()">▶ 5초 하이라이트 듣기</button>
-            <div class="status" id="status-text">버튼을 눌러 5초간 하이라이트 음원을 들어보세요!</div>
-        </div>
-
-        <div id="player-container">
-            <div id="yt-player"></div>
-        </div>
-
-        <script>
-            var tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            var firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-            var player;
-            var stopTimer = null;
-            var isReady = false;
-
-            function onYouTubeIframeAPIReady() {{
-                player = new YT.Player('yt-player', {{
-                    height: '0',
-                    width: '0',
-                    videoId: '{yt_id}',
-                    playerVars: {{
-                        'autoplay': 0,
-                        'controls': 0,
-                        'rel': 0
-                    }},
-                    events: {{
-                        'onReady': onPlayerReady
-                    }}
-                }});
-            }}
-
-            function onPlayerReady(event) {{
-                isReady = true;
-            }}
-
-            function playAudio5Sec() {{
-                if (!player || !isReady || typeof player.seekTo !== 'function') {{
-                    document.getElementById('status-text').innerText = "⏳ 음원을 로딩 중입니다. 1~2초 후 다시 눌러주세요.";
-                    return;
-                }}
-
-                if (stopTimer) clearTimeout(stopTimer);
-
-                player.seekTo({start_sec}, true);
-                player.playVideo();
-                document.getElementById('status-text').innerText = "🎵 5초 하이라이트 재생 중...";
-
-                stopTimer = setTimeout(function() {{
-                    player.pauseVideo();
-                    document.getElementById('status-text').innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                }}, 5000);
-            }}
-        </script>
-    </body>
-    </html>
-    """
-    # st.container를 활용하여 문제별 독자 영역 생성 (key 에러 해결)
-    player_container = st.container()
-    with player_container:
-        components.html(player_html, height=150)
+# 오디오 전용 5초 플레이어 (Streamlit Native Audio 적용)
+def render_audio_player(yt_id, start_sec):
+    end_sec = start_sec + 5
+    # 오디오 스트림 추출 링크 (영상이 보이지 않는 오디오 전용 URL)
+    audio_url = f"https://www.youtube-nocookie.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=0"
+    
+    st.markdown("""
+    <div class="audio-card">
+        <p>🎵 아래 플레이어로 5초 하이라이트를 들어보세요!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Streamlit 고유 오디오 플레이어로 안정성 확보
+    st.audio(audio_url, format="audio/mp3", start_time=start_sec, end_time=end_sec)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_hidden_youtube_player(current_q["yt_id"], current_q["start_sec"])
+    render_audio_player(current_q["yt_id"], current_q["start_sec"])
 
     st.write("")
-    user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"q_{st.session_state.q_idx}")
+    user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"q_radio_{st.session_state.q_idx}")
 
     st.write("")
-    if st.button("정답 제출 🍀"):
+    if st.button("정답 제출 🍀", key=f"submit_{st.session_state.q_idx}"):
         if user_choice == current_q["answer"]:
             st.success("정답입니다! 🎉")
             st.session_state.score += 10
@@ -269,10 +188,10 @@ if not st.session_state.is_finished:
 
         if st.session_state.q_idx + 1 < len(QUIZ_DATA):
             st.session_state.q_idx += 1
-            st.button("다음 문제로 ➡️")
+            st.button("다음 문제로 ➡️", key=f"next_{st.session_state.q_idx}")
         else:
             st.session_state.is_finished = True
-            st.button("결과 확인하기 🏆")
+            st.button("결과 확인하기 🏆", key="finish_btn")
 
 # 결과 화면
 else:
@@ -288,7 +207,7 @@ else:
     else:
         st.write("👍 수고하셨습니다! 다시 도전해보세요.")
 
-    if st.button("다시 도전하기 🔄"):
+    if st.button("다시 도전하기 🔄", key="reset_btn"):
         st.session_state.q_idx = 0
         st.session_state.score = 0
         st.session_state.is_finished = False
