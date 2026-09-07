@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -79,44 +78,51 @@ st.markdown("""
 <div class="fromis-header">
     <span class="fromis-badge">🍀 FLOVER MUSIC QUIZ</span>
     <div class="fromis-title">프로미스나인 5초 음원 맞히기</div>
-    <div style="color: #4A5568; font-size: 0.95rem; font-weight: 600;">음원을 5초간 듣고 어떤 노래인지 맞춰보세요! ✨</div>
+    <div style="color: #4A5568; font-size: 0.95rem; font-weight: 600;">유튜브 음원을 5초간 듣고 어떤 노래인지 맞춰보세요! ✨</div>
 </div>
 """, unsafe_allow_html=True)
 
-# Requested 7 Songs Data
+# 유튜브 뮤비/음원 링크 데이터 (요청 곡 7개)
 QUIZ_DATA = [
     {
-        "audio_path": "assets/supersonic.mp3",
+        "yt_id": "0LiQp7y8Wwc", # Supersonic MV
+        "start_sec": 45,
         "answer": "Supersonic",
         "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
-        "audio_path": "assets/we_go.mp3",
+        "yt_id": "HM633a928Bw", # WE GO MV
+        "start_sec": 35,
         "answer": "WE GO",
         "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
     },
     {
-        "audio_path": "assets/sky_runner.mp3",
+        "yt_id": "U3cK8eG_V-I", # Sky Runner
+        "start_sec": 20,
         "answer": "Sky Runner",
         "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
     },
     {
-        "audio_path": "assets/vitamin_me.mp3",
+        "yt_id": "Y8gYm-E6bGA", # Vitamin Me
+        "start_sec": 30,
         "answer": "Vitamin Me",
         "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
     },
     {
-        "audio_path": "assets/i_like_you_better.mp3",
+        "yt_id": "bKk2EaT5Vls", # I Like You Better
+        "start_sec": 25,
         "answer": "I Like You Better",
         "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
     },
     {
-        "audio_path": "assets/hayan_geurium.mp3",
+        "yt_id": "Y89D9W0p_2A", # 하얀 그리움
+        "start_sec": 40,
         "answer": "하얀 그리움",
         "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
     },
     {
-        "audio_path": "assets/from.mp3",
+        "yt_id": "7L9Y8K6zVjA", # From
+        "start_sec": 30,
         "answer": "From",
         "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
@@ -131,9 +137,10 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 5초 제한 오디오 플레이어 (HTML5 Audio Context 기반)
-def render_5sec_player(source):
-    player_html = f"""
+# 유튜브 5초 전용 임베드 플레이어
+def render_youtube_5sec(yt_id, start_sec):
+    end_sec = start_sec + 5
+    yt_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -142,33 +149,20 @@ def render_5sec_player(source):
             body {{
                 font-family: 'Pretendard', sans-serif;
                 margin: 0;
-                padding: 5px;
+                padding: 0;
                 background: transparent;
                 text-align: center;
             }}
-            .box {{
+            .card {{
                 background: rgba(255, 255, 255, 0.85);
                 backdrop-filter: blur(12px);
-                border: 2px solid #FFF;
                 border-radius: 20px;
-                padding: 20px;
+                padding: 15px;
+                border: 2px solid #FFF;
                 box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             }}
-            .btn-play {{
-                background: linear-gradient(135deg, #3BCEAC, #22D3EE);
-                border: none;
-                color: white;
-                font-weight: 700;
-                font-size: 1rem;
-                padding: 12px 30px;
-                border-radius: 50px;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
-                transition: all 0.2s ease;
-            }}
-            .btn-play:hover {{ transform: scale(1.03); }}
             .status {{
-                margin-top: 12px;
+                margin-top: 10px;
                 font-size: 0.85rem;
                 color: #FF4B8B;
                 font-weight: 700;
@@ -176,46 +170,27 @@ def render_5sec_player(source):
         </style>
     </head>
     <body>
-        <div class="box">
-            <audio id="audio" src="{source}"></audio>
-            <button class="btn-play" onclick="play5Sec()">▶ 5초 음원 재생</button>
-            <div class="status" id="status">버튼을 눌러 5초간 음원을 들어보세요!</div>
+        <div class="card">
+            <iframe id="ytPlayer" width="100%" height="200" 
+                src="https://www.youtube-nocookie.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=0&rel=0&enablejsapi=1" 
+                title="YouTube Video" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen
+                style="border-radius: 14px;">
+            </iframe>
+            <div class="status">⏱️ 재생 버튼을 누르면 5초간 감상할 수 있습니다.</div>
         </div>
-
-        <script>
-            const audio = document.getElementById('audio');
-            const statusElem = document.getElementById('status');
-            let timer = null;
-
-            function play5Sec() {{
-                if (timer) clearTimeout(timer);
-                
-                audio.currentTime = 0;
-                audio.play().then(() => {{
-                    statusElem.innerText = "🎵 5초 음원 감상 중...";
-                    timer = setTimeout(() => {{
-                        audio.pause();
-                        statusElem.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                    }}, 5000);
-                }}).catch(err => {{
-                    statusElem.innerText = "⚠️ 음원 재생 오류: 파일 경로를 확인해 주세요.";
-                }});
-            }}
-        </script>
     </body>
     </html>
     """
-    components.html(player_html, height=150)
+    components.html(yt_html, height=270)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    audio_file = current_q["audio_path"]
-    if os.path.exists(audio_file):
-        render_5sec_player(audio_file)
-    else:
-        st.warning(f"⚠️ `{audio_file}` 파일이 준비되지 않았습니다. assets/ 폴더에 MP3 파일을 넣어주세요.")
+    render_youtube_5sec(current_q["yt_id"], current_q["start_sec"])
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"q_{st.session_state.q_idx}")
