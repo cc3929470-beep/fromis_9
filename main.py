@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -82,37 +83,42 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 퍼가기 검증 완료된 프로미스나인 곡 데이터 목록
+# Requested 7 Songs Data
 QUIZ_DATA = [
     {
-        "youtube_id": "03q3BIn8j3A", # Supersonic
-        "start_sec": 40,
+        "audio_path": "assets/supersonic.mp3",
         "answer": "Supersonic",
-        "options": ["Supersonic", "WE GO", "DM", "Stay This Way"]
+        "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
-        "youtube_id": "HM633a928Bw", # WE GO
-        "start_sec": 35,
+        "audio_path": "assets/we_go.mp3",
         "answer": "WE GO",
-        "options": ["LOVE BOMB", "WE GO", "FUN!", "Glass Shoes"]
+        "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
     },
     {
-        "youtube_id": "4gX_l4p31yM", # DM
-        "start_sec": 50,
-        "answer": "DM",
-        "options": ["DM", "Supersonic", "WE GO", "Escape Room"]
+        "audio_path": "assets/sky_runner.mp3",
+        "answer": "Sky Runner",
+        "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
     },
     {
-        "youtube_id": "5gg2I4E14X8", # Stay This Way
-        "start_sec": 30,
-        "answer": "Stay This Way",
-        "options": ["Rewind", "Stay This Way", "Blind Letter", "TLW"]
+        "audio_path": "assets/vitamin_me.mp3",
+        "answer": "Vitamin Me",
+        "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
     },
     {
-        "youtube_id": "vS24iGjN9dM", # LOVE BOMB
-        "start_sec": 45,
-        "answer": "LOVE BOMB",
-        "options": ["LOVE BOMB", "FUN!", "DKDK", "To Heart"]
+        "audio_path": "assets/i_like_you_better.mp3",
+        "answer": "I Like You Better",
+        "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
+    },
+    {
+        "audio_path": "assets/hayan_geurium.mp3",
+        "answer": "하얀 그리움",
+        "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
+    },
+    {
+        "audio_path": "assets/from.mp3",
+        "answer": "From",
+        "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
 ]
 
@@ -125,36 +131,91 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 안정적인 유튜브 5초 오디오 플레이어
-def render_youtube_5sec(yt_id, start_sec):
-    end_sec = start_sec + 5
-    yt_html = f"""
+# 5초 제한 오디오 플레이어 (HTML5 Audio Context 기반)
+def render_5sec_player(source):
+    player_html = f"""
     <!DOCTYPE html>
     <html>
-    <body style="margin:0; padding:0; background:transparent; text-align:center;">
-        <div style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-radius: 20px; padding: 15px; border: 2px solid #FFF;">
-            <iframe id="ytPlayer" width="100%" height="180" 
-                src="https://www.youtube-nocookie.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=0&rel=0&enablejsapi=1" 
-                title="YouTube audio" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen
-                style="border-radius: 12px;">
-            </iframe>
-            <div style="margin-top: 10px; font-family: 'Pretendard', sans-serif; font-size: 0.85rem; color: #FF4B8B; font-weight: 700;">
-                ⏱️ 재생 버튼을 누르면 딱 5초간만 재생됩니다.
-            </div>
+    <head>
+        <style>
+            @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+            body {{
+                font-family: 'Pretendard', sans-serif;
+                margin: 0;
+                padding: 5px;
+                background: transparent;
+                text-align: center;
+            }}
+            .box {{
+                background: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(12px);
+                border: 2px solid #FFF;
+                border-radius: 20px;
+                padding: 20px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }}
+            .btn-play {{
+                background: linear-gradient(135deg, #3BCEAC, #22D3EE);
+                border: none;
+                color: white;
+                font-weight: 700;
+                font-size: 1rem;
+                padding: 12px 30px;
+                border-radius: 50px;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
+                transition: all 0.2s ease;
+            }}
+            .btn-play:hover {{ transform: scale(1.03); }}
+            .status {{
+                margin-top: 12px;
+                font-size: 0.85rem;
+                color: #FF4B8B;
+                font-weight: 700;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="box">
+            <audio id="audio" src="{source}"></audio>
+            <button class="btn-play" onclick="play5Sec()">▶ 5초 음원 재생</button>
+            <div class="status" id="status">버튼을 눌러 5초간 음원을 들어보세요!</div>
         </div>
+
+        <script>
+            const audio = document.getElementById('audio');
+            const statusElem = document.getElementById('status');
+            let timer = null;
+
+            function play5Sec() {{
+                if (timer) clearTimeout(timer);
+                
+                audio.currentTime = 0;
+                audio.play().then(() => {{
+                    statusElem.innerText = "🎵 5초 음원 감상 중...";
+                    timer = setTimeout(() => {{
+                        audio.pause();
+                        statusElem.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
+                    }}, 5000);
+                }}).catch(err => {{
+                    statusElem.innerText = "⚠️ 음원 재생 오류: 파일 경로를 확인해 주세요.";
+                }});
+            }}
+        </script>
     </body>
     </html>
     """
-    components.html(yt_html, height=250)
+    components.html(player_html, height=150)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_youtube_5sec(current_q["youtube_id"], current_q["start_sec"])
+    audio_file = current_q["audio_path"]
+    if os.path.exists(audio_file):
+        render_5sec_player(audio_file)
+    else:
+        st.warning(f"⚠️ `{audio_file}` 파일이 준비되지 않았습니다. assets/ 폴더에 MP3 파일을 넣어주세요.")
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"q_{st.session_state.q_idx}")
@@ -163,7 +224,7 @@ if not st.session_state.is_finished:
     if st.button("정답 제출 🍀"):
         if user_choice == current_q["answer"]:
             st.success("정답입니다! 🎉")
-            st.session_state.score += 20
+            st.session_state.score += 10
         else:
             st.error(f"아쉽네요! 정답은 [{current_q['answer']}] 입니다. 😅")
 
@@ -178,11 +239,13 @@ if not st.session_state.is_finished:
 else:
     st.balloons()
     st.header("🏆 게임 종료!")
-    max_score = len(QUIZ_DATA) * 20
+    max_score = len(QUIZ_DATA) * 10
     st.write(f"최종 점수: **{st.session_state.score}** / {max_score} 점")
     
     if st.session_state.score == max_score:
         st.write("🥇 만점입니다! 당신은 완벽한 플로버(flover)입니다. 🍀")
+    elif st.session_state.score >= 50:
+        st.write("🥈 훌륭한 실력이에요!")
     else:
         st.write("👍 수고하셨습니다! 다시 도전해보세요.")
 
