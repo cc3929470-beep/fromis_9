@@ -70,40 +70,47 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 요청하신 7개 노래 기반 퀴즈 데이터
+# 백업 샘플 URL이 추가된 퀴즈 데이터
 QUIZ_DATA = [
     {
         "audio_url": "assets/supersonic.mp3",
+        "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
         "answer": "Supersonic",
         "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
         "audio_url": "assets/we_go.mp3",
+        "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
         "answer": "WE GO",
         "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
     },
     {
         "audio_url": "assets/sky_runner.mp3",
+        "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
         "answer": "Sky Runner",
         "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
     },
     {
         "audio_url": "assets/vitamin_me.mp3",
+        "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
         "answer": "Vitamin Me",
         "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
     },
     {
         "audio_url": "assets/i_like_you_better.mp3",
+        "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
         "answer": "I Like You Better",
         "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
     },
     {
         "audio_url": "assets/hayan_geurium.mp3",
+        "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
         "answer": "하얀 그리움",
         "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
     },
     {
         "audio_url": "assets/from.mp3",
+        "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
         "answer": "From",
         "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
@@ -119,7 +126,7 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 5초 제한 & 출력 장치 커스텀 오디오 플레이어 컴포넌트
+# 5초 제한 커스텀 오디오 플레이어 컴포넌트
 def render_5sec_player(source):
     player_html = f"""
     <!DOCTYPE html>
@@ -374,12 +381,13 @@ def render_5sec_player(source):
 if not st.session_state.is_finished:
     st.subheader(f"문제 {st.session_state.q_idx + 1} / {len(QUIZ_DATA)}")
     
-    # MP3 파일 유무 확인
+    # MP3 파일 검사 후 파일이 없으면 자동 fallback 처리
     audio_path = current_q["audio_url"]
     if os.path.exists(audio_path):
         render_5sec_player(audio_path)
     else:
-        st.error(f"⚠️ '{audio_path}' 음원 파일을 찾을 수 없습니다. assets 폴더를 확인해 주세요.")
+        st.info("💡 MP3 파일이 없어 샘플 테스트 음원으로 대체 재생합니다. (assets 폴더에 MP3를 넣으시면 실제 노래가 재생됩니다)")
+        render_5sec_player(current_q["fallback_url"])
 
     # 보기 선택
     user_choice = st.radio(
