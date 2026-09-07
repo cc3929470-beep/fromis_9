@@ -82,7 +82,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 곡 데이터
+# 곡 데이터 (7곡)
 QUIZ_DATA = [
     {
         "yt_id": "0LiQp7y8Wwc", # Supersonic
@@ -137,7 +137,7 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 영상은 안 보이고 오디오만 5초 재생되는 JS 플레이어 (Key 고유화 적용)
+# 영상은 안 보이고 오디오만 5초 재생되는 JS 플레이어
 def render_hidden_youtube_player(yt_id, start_sec):
     player_html = f"""
     <!DOCTYPE html>
@@ -245,8 +245,10 @@ def render_hidden_youtube_player(yt_id, start_sec):
     </body>
     </html>
     """
-    # 문제 번호(q_idx)를 key로 설정하여 문제 변경 시 새 HTML 컴포넌트를 강제 로드
-    components.html(player_html, height=150, key=f"yt_player_{st.session_state.q_idx}")
+    # st.container를 활용하여 문제별 독자 영역 생성 (key 에러 해결)
+    player_container = st.container()
+    with player_container:
+        components.html(player_html, height=150)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
