@@ -82,7 +82,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 요청하신 7개 곡 데이터 (유튜브 영상 ID 및 하이라이트 시작 시간)
+# 곡 데이터
 QUIZ_DATA = [
     {
         "yt_id": "0LiQp7y8Wwc", # Supersonic
@@ -137,7 +137,7 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 영상은 안 보이고 오디오만 5초 재생되는 JS 플레이어
+# 영상은 안 보이고 오디오만 5초 재생되는 JS 플레이어 (Key 고유화 적용)
 def render_hidden_youtube_player(yt_id, start_sec):
     player_html = f"""
     <!DOCTYPE html>
@@ -179,7 +179,6 @@ def render_hidden_youtube_player(yt_id, start_sec):
                 color: #FF4B8B;
                 font-weight: 700;
             }}
-            /* 유튜브 비디오 숨기기 */
             #player-container {{
                 display: none;
             }}
@@ -188,7 +187,7 @@ def render_hidden_youtube_player(yt_id, start_sec):
     <body>
         <div class="card">
             <button class="btn-play" onclick="playAudio5Sec()">▶ 5초 하이라이트 듣기</button>
-            <div class="status" id="status-text">버튼을 누르면 5초간 하이라이트 음원이 재생됩니다.</div>
+            <div class="status" id="status-text">버튼을 눌러 5초간 하이라이트 음원을 들어보세요!</div>
         </div>
 
         <div id="player-container">
@@ -203,6 +202,7 @@ def render_hidden_youtube_player(yt_id, start_sec):
 
             var player;
             var stopTimer = null;
+            var isReady = false;
 
             function onYouTubeIframeAPIReady() {{
                 player = new YT.Player('yt-player', {{
@@ -213,13 +213,20 @@ def render_hidden_youtube_player(yt_id, start_sec):
                         'autoplay': 0,
                         'controls': 0,
                         'rel': 0
+                    }},
+                    events: {{
+                        'onReady': onPlayerReady
                     }}
                 }});
             }}
 
+            function onPlayerReady(event) {{
+                isReady = true;
+            }}
+
             function playAudio5Sec() {{
-                if (!player || typeof player.seekTo !== 'function') {{
-                    document.getElementById('status-text').innerText = "⏳ 음원을 로딩 중입니다. 잠시 후 다시 눌러주세요.";
+                if (!player || !isReady || typeof player.seekTo !== 'function') {{
+                    document.getElementById('status-text').innerText = "⏳ 음원을 로딩 중입니다. 1~2초 후 다시 눌러주세요.";
                     return;
                 }}
 
@@ -238,7 +245,8 @@ def render_hidden_youtube_player(yt_id, start_sec):
     </body>
     </html>
     """
-    components.html(player_html, height=150)
+    # 문제 번호(q_idx)를 key로 설정하여 문제 변경 시 새 HTML 컴포넌트를 강제 로드
+    components.html(player_html, height=150, key=f"yt_player_{st.session_state.q_idx}")
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
