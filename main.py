@@ -1,14 +1,15 @@
-import base64
+import os
 import streamlit as st
 import streamlit.components.v1 as components
 
+# 페이지 기본 설정
 st.set_page_config(
-    page_title="fromis_9 FLOVER 5초 미리듣기",
+    page_title="fromis_9 5초 음원 퀴즈",
     page_icon="🍀",
     layout="centered"
 )
 
-# Custom CSS
+# 프로미스나인 컨셉 Custom CSS
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -22,7 +23,7 @@ st.markdown("""
     .fromis-header {
         text-align: center;
         padding: 25px 20px;
-        background: rgba(255, 255, 255, 0.75);
+        background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(12px);
         border-radius: 24px;
         border: 2px solid #5DE2A4;
@@ -63,31 +64,62 @@ st.markdown("""
 # 헤더
 st.markdown("""
 <div class="fromis-header">
-    <span class="fromis-badge">🍀 FLOVER SPECIAL PREVIEW</span>
-    <div class="fromis-title">fromis_9 🎵 5초 미리듣기</div>
-    <div class="fromis-subtitle">상큼한 프로미스나인 감성의 5초 제한 오디오 플레이어</div>
+    <span class="fromis-badge">🍀 FLOVER MUSIC QUIZ</span>
+    <div class="fromis-title">프로미스나인 5초 음원 맞히기</div>
+    <div class="fromis-subtitle">음원을 5초간 듣고 어떤 노래인지 맞춰보세요!</div>
 </div>
 """, unsafe_allow_html=True)
 
-# 사이드바
-st.sidebar.title("🍀 옵션 선택")
-audio_option = st.sidebar.radio("음원 선택 방식", ["기본 샘플 음악", "MP3 파일 직접 업로드"])
+# 요청하신 7개 노래 기반 퀴즈 데이터
+QUIZ_DATA = [
+    {
+        "audio_url": "assets/supersonic.mp3",
+        "answer": "Supersonic",
+        "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
+    },
+    {
+        "audio_url": "assets/we_go.mp3",
+        "answer": "WE GO",
+        "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
+    },
+    {
+        "audio_url": "assets/sky_runner.mp3",
+        "answer": "Sky Runner",
+        "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
+    },
+    {
+        "audio_url": "assets/vitamin_me.mp3",
+        "answer": "Vitamin Me",
+        "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
+    },
+    {
+        "audio_url": "assets/i_like_you_better.mp3",
+        "answer": "I Like You Better",
+        "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
+    },
+    {
+        "audio_url": "assets/hayan_geurium.mp3",
+        "answer": "하얀 그리움",
+        "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
+    },
+    {
+        "audio_url": "assets/from.mp3",
+        "answer": "From",
+        "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
+    }
+]
 
-audio_src = ""
-if audio_option == "기본 샘플 음악":
-    audio_src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-    st.sidebar.info("💡 샘플 음원이 선택되었습니다.")
-else:
-    uploaded_file = st.sidebar.file_uploader("MP3 음원 파일을 업로드하세요", type=["mp3", "wav", "ogg"])
-    if uploaded_file is not None:
-        audio_bytes = uploaded_file.read()
-        b64_audio = base64.b64encode(audio_bytes).decode()
-        audio_src = f"data:audio/mp3;base64,{b64_audio}"
-        st.sidebar.success("✅ 파일 업로드 완료!")
-    else:
-        st.sidebar.warning("음원 파일을 업로드해주세요.")
+# 세션 상태 초기화
+if "q_idx" not in st.session_state:
+    st.session_state.q_idx = 0
+if "score" not in st.session_state:
+    st.session_state.score = 0
+if "is_finished" not in st.session_state:
+    st.session_state.is_finished = False
 
-# 5초 제한 & 출력 장치 선택 커스텀 HTML/JS 컴포넌트
+current_q = QUIZ_DATA[st.session_state.q_idx]
+
+# 5초 제한 & 출력 장치 커스텀 오디오 플레이어 컴포넌트
 def render_5sec_player(source):
     player_html = f"""
     <!DOCTYPE html>
@@ -98,24 +130,18 @@ def render_5sec_player(source):
             body {{
                 font-family: 'Pretendard', sans-serif;
                 margin: 0;
-                padding: 10px;
+                padding: 5px;
                 background: transparent;
             }}
             .player-container {{
                 background: linear-gradient(135deg, #ffffff 0%, #F0FFF8 100%);
                 border: 2px solid #5DE2A4;
                 border-radius: 20px;
-                padding: 20px;
+                padding: 18px;
                 box-shadow: 0 10px 25px rgba(93, 226, 164, 0.25);
                 text-align: center;
                 max-width: 480px;
                 margin: 0 auto;
-            }}
-            .song-info {{
-                font-weight: 700;
-                font-size: 1.1rem;
-                color: #2E4057;
-                margin-bottom: 6px;
             }}
             .timer-badge {{
                 display: inline-block;
@@ -125,22 +151,22 @@ def render_5sec_player(source):
                 font-weight: 700;
                 padding: 4px 12px;
                 border-radius: 12px;
-                margin-bottom: 15px;
+                margin-bottom: 12px;
             }}
             .controls {{
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                gap: 15px;
-                margin-bottom: 15px;
+                gap: 12px;
+                margin-bottom: 12px;
             }}
             .btn-play {{
                 background: linear-gradient(135deg, #5DE2A4, #3BCEAC);
                 border: none;
                 color: white;
                 font-weight: 700;
-                font-size: 1rem;
-                padding: 12px 28px;
+                font-size: 0.95rem;
+                padding: 10px 24px;
                 border-radius: 50px;
                 cursor: pointer;
                 box-shadow: 0 4px 15px rgba(93, 226, 164, 0.4);
@@ -149,22 +175,22 @@ def render_5sec_player(source):
             .btn-play:hover {{ transform: translateY(-2px); }}
             
             .device-select-box {{
-                margin: 15px 0;
+                margin: 10px 0 15px 0;
                 text-align: left;
             }}
             .device-label {{
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 font-weight: 700;
                 color: #4A5568;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
                 display: block;
             }}
             .device-select {{
                 width: 100%;
-                padding: 8px 12px;
-                border-radius: 10px;
+                padding: 6px 10px;
+                border-radius: 8px;
                 border: 1.5px solid #5DE2A4;
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 outline: none;
                 background-color: #FFF;
             }}
@@ -172,10 +198,10 @@ def render_5sec_player(source):
             .progress-bar-container {{
                 width: 100%;
                 background-color: #E2F4EC;
-                height: 10px;
-                border-radius: 5px;
+                height: 8px;
+                border-radius: 4px;
                 overflow: hidden;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
             }}
             .progress-bar {{
                 width: 0%;
@@ -184,32 +210,30 @@ def render_5sec_player(source):
                 transition: width 0.1s linear;
             }}
             .time-display {{
-                font-size: 0.9rem;
+                font-size: 0.85rem;
                 color: #666;
                 font-weight: 600;
             }}
             .alert-msg {{
                 color: #FF4757;
-                font-size: 0.82rem;
+                font-size: 0.8rem;
                 font-weight: 700;
-                margin-top: 8px;
-                height: 18px;
+                margin-top: 6px;
+                height: 16px;
             }}
         </style>
     </head>
     <body>
 
     <div class="player-container">
-        <div class="song-info">🍀 5-SEC LIMITED PREVIEW</div>
         <div class="timer-badge" id="statusBadge">⏱️ 최대 5초 감상 가능</div>
         
         <audio id="myAudio" src="{source}" preload="metadata"></audio>
         
-        <!-- 출력 장치 선택드롭다운 -->
         <div class="device-select-box">
-            <label class="device-label" for="audioOutputSelect">🎧 사운드 출력 장치 선택:</label>
+            <label class="device-label" for="audioOutputSelect">🎧 사운드 출력 장치:</label>
             <select id="audioOutputSelect" class="device-select" onchange="changeAudioOutput()">
-                <option value="">출력 장치 검색 중...</option>
+                <option value="">장치 검색 중...</option>
             </select>
         </div>
 
@@ -239,23 +263,21 @@ def render_5sec_player(source):
 
         const MAX_SECONDS = 5.0;
 
-        // 웹 오디오 API를 사용해 사운드 출력 장치 목록 로드 (Chrome, Edge 등 브라우저 지원)
         async function loadAudioOutputDevices() {{
             if (!('setSinkId' in HTMLAudioElement.prototype)) {{
-                audioOutputSelect.innerHTML = '<option value="">브라우저가 출력 장치 변경을 지원하지 않습니다 (기본 장치로 재생)</option>';
+                audioOutputSelect.innerHTML = '<option value="">기본 브라우저 출력 장치 사용 중</option>';
                 audioOutputSelect.disabled = true;
                 return;
             }}
 
             try {{
-                // 마이크/오디오 권한 요청 (장치 이름을 정확히 가져오기 위함)
                 await navigator.mediaDevices.getUserMedia({{ audio: true }});
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
 
                 audioOutputSelect.innerHTML = '';
                 if (audioOutputs.length === 0) {{
-                    audioOutputSelect.innerHTML = '<option value="">사용 가능한 출력 장치가 없습니다</option>';
+                    audioOutputSelect.innerHTML = '<option value="">출력 장치를 찾을 수 없습니다</option>';
                     return;
                 }}
 
@@ -266,11 +288,10 @@ def render_5sec_player(source):
                     audioOutputSelect.appendChild(option);
                 }});
             }} catch (err) {{
-                audioOutputSelect.innerHTML = '<option value="">출력 장치 권한 필요 (기본 장치 사용 중)</option>';
+                audioOutputSelect.innerHTML = '<option value="">기본 출력 장치 사용 중</option>';
             }}
         }}
 
-        // 사운드 출력 장치 변경 함수
         async function changeAudioOutput() {{
             const deviceId = audioOutputSelect.value;
             if (typeof audio.setSinkId === 'function' && deviceId) {{
@@ -347,16 +368,63 @@ def render_5sec_player(source):
     </body>
     </html>
     """
-    components.html(player_html, height=350)
+    components.html(player_html, height=290)
 
-# 메인 화면 실행
-if audio_src:
-    render_5sec_player(audio_src)
+# 게임 진행 화면
+if not st.session_state.is_finished:
+    st.subheader(f"문제 {st.session_state.q_idx + 1} / {len(QUIZ_DATA)}")
+    
+    # MP3 파일 유무 확인
+    audio_path = current_q["audio_url"]
+    if os.path.exists(audio_path):
+        render_5sec_player(audio_path)
+    else:
+        st.error(f"⚠️ '{audio_path}' 음원 파일을 찾을 수 없습니다. assets 폴더를 확인해 주세요.")
+
+    # 보기 선택
+    user_choice = st.radio(
+        "이 노래의 제목은 무엇일까요?", 
+        current_q["options"], 
+        key=f"q_{st.session_state.q_idx}"
+    )
+
+    # 제출 버튼
+    if st.button("정답 제출"):
+        if user_choice == current_q["answer"]:
+            st.success("정답입니다! 🎉")
+            st.session_state.score += 10
+        else:
+            st.error(f"아쉽네요! 정답은 [{current_q['answer']}] 입니다. 😅")
+
+        if st.session_state.q_idx + 1 < len(QUIZ_DATA):
+            st.session_state.q_idx += 1
+            st.button("다음 문제로 ➡️")
+        else:
+            st.session_state.is_finished = True
+            st.button("결과 확인하기 🏆")
+
+# 결과 화면
 else:
-    st.warning("👈 사이드바에서 음원을 선택하거나 업로드해 주세요!")
+    st.balloons()
+    st.header("🏆 게임 종료!")
+    max_score = len(QUIZ_DATA) * 10
+    st.write(f"최종 점수: **{st.session_state.score}** / {max_score} 점")
+    
+    if st.session_state.score == max_score:
+        st.write("🥇 만점입니다! 당신은 완벽한 플로버(flover)입니다.")
+    elif st.session_state.score >= 50:
+        st.write("🥈 훌륭한 실력이에요!")
+    else:
+        st.write("👍 수고하셨습니다! 다시 한번 도전해보세요.")
+
+    if st.button("다시 하기"):
+        st.session_state.q_idx = 0
+        st.session_state.score = 0
+        st.session_state.is_finished = False
+        st.rerun()
 
 st.markdown("""
 <div style="margin-top: 30px; text-align: center; color: #888; font-size: 0.85rem;">
-    🍀 FLOVER Fan Zone | 프로미스나인 스페셜 타이머 플레이어
+    🍀 FLOVER Fan Zone | 프로미스나인 5초 음원 퀴즈
 </div>
 """, unsafe_allow_html=True)
