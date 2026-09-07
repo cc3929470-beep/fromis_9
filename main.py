@@ -2,28 +2,23 @@ import base64
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 페이지 기본 설정
 st.set_page_config(
     page_title="fromis_9 FLOVER 5초 미리듣기",
     page_icon="🍀",
     layout="centered"
 )
 
-# 프로미스나인 컨셉 Custom CSS
+# Custom CSS
 st.markdown("""
 <style>
-    @import url('[https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css](https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)');
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
-    * {
-        font-family: 'Pretendard', sans-serif;
-    }
+    * { font-family: 'Pretendard', sans-serif; }
     
-    /* 전체 배경 그라데이션 (상큼한 민트 & 핑크 파스텔) */
     .stApp {
         background: linear-gradient(135deg, #E6FAFA 0%, #FFF0F5 50%, #F0F7FF 100%);
     }
 
-    /* 메인 타이틀 스타일ing */
     .fromis-header {
         text-align: center;
         padding: 25px 20px;
@@ -62,20 +57,10 @@ st.markdown("""
         font-size: 0.95rem;
         font-weight: 600;
     }
-
-    /* 스트림릿 카드 스타일 */
-    .css-card {
-        background: rgba(255, 255, 255, 0.85);
-        border-radius: 20px;
-        padding: 20px;
-        border: 1px solid rgba(93, 226, 164, 0.3);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.03);
-        margin-bottom: 20px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# 헤더 영역
+# 헤더
 st.markdown("""
 <div class="fromis-header">
     <span class="fromis-badge">🍀 FLOVER SPECIAL PREVIEW</span>
@@ -84,19 +69,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 사이드바 설정
+# 사이드바
 st.sidebar.title("🍀 옵션 선택")
-
-audio_option = st.sidebar.radio(
-    "음원 선택 방식",
-    ["기본 샘플 음악", "MP3 파일 직접 업로드"]
-)
+audio_option = st.sidebar.radio("음원 선택 방식", ["기본 샘플 음악", "MP3 파일 직접 업로드"])
 
 audio_src = ""
-
 if audio_option == "기본 샘플 음악":
-    # 샘플 음원 URL
-    audio_src = "[https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3](https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3)"
+    audio_src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
     st.sidebar.info("💡 샘플 음원이 선택되었습니다.")
 else:
     uploaded_file = st.sidebar.file_uploader("MP3 음원 파일을 업로드하세요", type=["mp3", "wav", "ogg"])
@@ -108,14 +87,14 @@ else:
     else:
         st.sidebar.warning("음원 파일을 업로드해주세요.")
 
-# 5초 제한 커스텀 HTML/JS 오디오 플레이어 컴포넌트
+# 5초 제한 & 출력 장치 선택 커스텀 HTML/JS 컴포넌트
 def render_5sec_player(source):
     player_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <style>
-            @import url('[https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css](https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)');
+            @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
             body {{
                 font-family: 'Pretendard', sans-serif;
                 margin: 0;
@@ -167,13 +146,29 @@ def render_5sec_player(source):
                 box-shadow: 0 4px 15px rgba(93, 226, 164, 0.4);
                 transition: all 0.2s ease;
             }}
-            .btn-play:hover {{
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(93, 226, 164, 0.6);
+            .btn-play:hover {{ transform: translateY(-2px); }}
+            
+            .device-select-box {{
+                margin: 15px 0;
+                text-align: left;
             }}
-            .btn-play:active {{
-                transform: translateY(0);
+            .device-label {{
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #4A5568;
+                margin-bottom: 5px;
+                display: block;
             }}
+            .device-select {{
+                width: 100%;
+                padding: 8px 12px;
+                border-radius: 10px;
+                border: 1.5px solid #5DE2A4;
+                font-size: 0.85rem;
+                outline: none;
+                background-color: #FFF;
+            }}
+
             .progress-bar-container {{
                 width: 100%;
                 background-color: #E2F4EC;
@@ -210,6 +205,14 @@ def render_5sec_player(source):
         
         <audio id="myAudio" src="{source}" preload="metadata"></audio>
         
+        <!-- 출력 장치 선택드롭다운 -->
+        <div class="device-select-box">
+            <label class="device-label" for="audioOutputSelect">🎧 사운드 출력 장치 선택:</label>
+            <select id="audioOutputSelect" class="device-select" onchange="changeAudioOutput()">
+                <option value="">출력 장치 검색 중...</option>
+            </select>
+        </div>
+
         <div class="controls">
             <button class="btn-play" id="playBtn" onclick="togglePlay()">▶ 재생하기</button>
             <button class="btn-play" style="background: #A0AEC0;" onclick="resetAudio()">🔄 처음부터</button>
@@ -232,8 +235,57 @@ def render_5sec_player(source):
         const currentTimeElem = document.getElementById('currentTime');
         const alertMsg = document.getElementById('alertMsg');
         const statusBadge = document.getElementById('statusBadge');
+        const audioOutputSelect = document.getElementById('audioOutputSelect');
 
-        const MAX_SECONDS = 5.0; // 5초 제한
+        const MAX_SECONDS = 5.0;
+
+        // 웹 오디오 API를 사용해 사운드 출력 장치 목록 로드 (Chrome, Edge 등 브라우저 지원)
+        async function loadAudioOutputDevices() {{
+            if (!('setSinkId' in HTMLAudioElement.prototype)) {{
+                audioOutputSelect.innerHTML = '<option value="">브라우저가 출력 장치 변경을 지원하지 않습니다 (기본 장치로 재생)</option>';
+                audioOutputSelect.disabled = true;
+                return;
+            }}
+
+            try {{
+                // 마이크/오디오 권한 요청 (장치 이름을 정확히 가져오기 위함)
+                await navigator.mediaDevices.getUserMedia({{ audio: true }});
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+
+                audioOutputSelect.innerHTML = '';
+                if (audioOutputs.length === 0) {{
+                    audioOutputSelect.innerHTML = '<option value="">사용 가능한 출력 장치가 없습니다</option>';
+                    return;
+                }}
+
+                audioOutputs.forEach((device, index) => {{
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `출력 장치 ${{index + 1}}`;
+                    audioOutputSelect.appendChild(option);
+                }});
+            }} catch (err) {{
+                audioOutputSelect.innerHTML = '<option value="">출력 장치 권한 필요 (기본 장치 사용 중)</option>';
+            }}
+        }}
+
+        // 사운드 출력 장치 변경 함수
+        async function changeAudioOutput() {{
+            const deviceId = audioOutputSelect.value;
+            if (typeof audio.setSinkId === 'function' && deviceId) {{
+                try {{
+                    await audio.setSinkId(deviceId);
+                    alertMsg.style.color = '#5DE2A4';
+                    alertMsg.innerText = '🔊 출력 장치가 변경되었습니다.';
+                }} catch (err) {{
+                    alertMsg.style.color = '#FF4757';
+                    alertMsg.innerText = '⚠️ 출력 장치 변경 실패';
+                }}
+            }}
+        }}
+
+        loadAudioOutputDevices();
 
         function togglePlay() {{
             if (audio.paused) {{
@@ -264,7 +316,6 @@ def render_5sec_player(source):
             statusBadge.innerText = '⏱️ 최대 5초 감상 가능';
         }}
 
-        // 재생 시간 실시간 체크 (5초 초과 시 차단)
         audio.addEventListener('timeupdate', () => {{
             const current = audio.currentTime;
             
@@ -274,6 +325,7 @@ def render_5sec_player(source):
                 playBtn.innerHTML = '▶ 재생하기';
                 progressBar.style.width = '100%';
                 currentTimeElem.innerText = '00:05';
+                alertMsg.style.color = '#FF4757';
                 alertMsg.innerText = '🔒 5초 미리듣기가 완료되었습니다!';
                 statusBadge.style.backgroundColor = '#A0AEC0';
                 statusBadge.innerText = '🔒 5초 제한 완료';
@@ -295,15 +347,14 @@ def render_5sec_player(source):
     </body>
     </html>
     """
-    components.html(player_html, height=280)
+    components.html(player_html, height=350)
 
-# 메인 콘텐츠 화면
+# 메인 화면 실행
 if audio_src:
     render_5sec_player(audio_src)
 else:
     st.warning("👈 사이드바에서 음원을 선택하거나 업로드해 주세요!")
 
-# 하단 커스텀 카드 영역
 st.markdown("""
 <div style="margin-top: 30px; text-align: center; color: #888; font-size: 0.85rem;">
     🍀 FLOVER Fan Zone | 프로미스나인 스페셜 타이머 플레이어
