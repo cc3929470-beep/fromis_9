@@ -78,20 +78,20 @@ st.markdown("""
 <div class="fromis-header">
     <span class="fromis-badge">🍀 FLOVER MUSIC QUIZ</span>
     <div class="fromis-title">프로미스나인 5초 음원 맞히기</div>
-    <div style="color: #4A5568; font-size: 0.95rem; font-weight: 600;">유튜브 음원을 5초간 듣고 어떤 노래인지 맞춰보세요! ✨</div>
+    <div style="color: #4A5568; font-size: 0.95rem; font-weight: 600;">하이라이트 5초를 듣고 어떤 노래인지 맞춰보세요! ✨</div>
 </div>
 """, unsafe_allow_html=True)
 
-# 유튜브 뮤비/음원 링크 데이터 (요청 곡 7개)
+# 요청하신 7개 곡 데이터 (유튜브 영상 ID 및 하이라이트 시작 시간)
 QUIZ_DATA = [
     {
-        "yt_id": "0LiQp7y8Wwc", # Supersonic MV
+        "yt_id": "0LiQp7y8Wwc", # Supersonic
         "start_sec": 45,
         "answer": "Supersonic",
         "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
-        "yt_id": "HM633a928Bw", # WE GO MV
+        "yt_id": "HM633a928Bw", # WE GO
         "start_sec": 35,
         "answer": "WE GO",
         "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
@@ -137,10 +137,9 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 유튜브 5초 전용 임베드 플레이어
-def render_youtube_5sec(yt_id, start_sec):
-    end_sec = start_sec + 5
-    yt_html = f"""
+# 영상은 안 보이고 오디오만 5초 재생되는 JS 플레이어
+def render_hidden_youtube_player(yt_id, start_sec):
+    player_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -149,7 +148,7 @@ def render_youtube_5sec(yt_id, start_sec):
             body {{
                 font-family: 'Pretendard', sans-serif;
                 margin: 0;
-                padding: 0;
+                padding: 5px;
                 background: transparent;
                 text-align: center;
             }}
@@ -157,40 +156,95 @@ def render_youtube_5sec(yt_id, start_sec):
                 background: rgba(255, 255, 255, 0.85);
                 backdrop-filter: blur(12px);
                 border-radius: 20px;
-                padding: 15px;
+                padding: 20px;
                 border: 2px solid #FFF;
                 box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             }}
+            .btn-play {{
+                background: linear-gradient(135deg, #3BCEAC, #22D3EE);
+                border: none;
+                color: white;
+                font-weight: 700;
+                font-size: 1rem;
+                padding: 12px 30px;
+                border-radius: 50px;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
+                transition: all 0.2s ease;
+            }}
+            .btn-play:hover {{ transform: scale(1.03); }}
             .status {{
-                margin-top: 10px;
+                margin-top: 12px;
                 font-size: 0.85rem;
                 color: #FF4B8B;
                 font-weight: 700;
+            }}
+            /* 유튜브 비디오 숨기기 */
+            #player-container {{
+                display: none;
             }}
         </style>
     </head>
     <body>
         <div class="card">
-            <iframe id="ytPlayer" width="100%" height="200" 
-                src="https://www.youtube-nocookie.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=0&rel=0&enablejsapi=1" 
-                title="YouTube Video" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen
-                style="border-radius: 14px;">
-            </iframe>
-            <div class="status">⏱️ 재생 버튼을 누르면 5초간 감상할 수 있습니다.</div>
+            <button class="btn-play" onclick="playAudio5Sec()">▶ 5초 하이라이트 듣기</button>
+            <div class="status" id="status-text">버튼을 누르면 5초간 하이라이트 음원이 재생됩니다.</div>
         </div>
+
+        <div id="player-container">
+            <div id="yt-player"></div>
+        </div>
+
+        <script>
+            var tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            var firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+            var player;
+            var stopTimer = null;
+
+            function onYouTubeIframeAPIReady() {{
+                player = new YT.Player('yt-player', {{
+                    height: '0',
+                    width: '0',
+                    videoId: '{yt_id}',
+                    playerVars: {{
+                        'autoplay': 0,
+                        'controls': 0,
+                        'rel': 0
+                    }}
+                }});
+            }}
+
+            function playAudio5Sec() {{
+                if (!player || typeof player.seekTo !== 'function') {{
+                    document.getElementById('status-text').innerText = "⏳ 음원을 로딩 중입니다. 잠시 후 다시 눌러주세요.";
+                    return;
+                }}
+
+                if (stopTimer) clearTimeout(stopTimer);
+
+                player.seekTo({start_sec}, true);
+                player.playVideo();
+                document.getElementById('status-text').innerText = "🎵 5초 하이라이트 재생 중...";
+
+                stopTimer = setTimeout(function() {{
+                    player.pauseVideo();
+                    document.getElementById('status-text').innerText = "🔒 5초 미리듣기가 완료되었습니다!";
+                }}, 5000);
+            }}
+        </script>
     </body>
     </html>
     """
-    components.html(yt_html, height=270)
+    components.html(player_html, height=150)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_youtube_5sec(current_q["yt_id"], current_q["start_sec"])
+    render_hidden_youtube_player(current_q["yt_id"], current_q["start_sec"])
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"q_{st.session_state.q_idx}")
