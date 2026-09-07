@@ -1,6 +1,6 @@
+import base64
 import streamlit as st
 import streamlit.components.v1 as components
-import base64
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -12,7 +12,7 @@ st.set_page_config(
 # 프로미스나인 컨셉 Custom CSS
 st.markdown("""
 <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    @import url('[https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css](https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)');
     
     * {
         font-family: 'Pretendard', sans-serif;
@@ -79,13 +79,12 @@ st.markdown("""
 st.markdown("""
 <div class="fromis-header">
     <span class="fromis-badge">🍀 FLOVER SPECIAL PREVIEW</span>
-    <div class="fromis-title">Stay This Way 🎵 5초 미리듣기</div>
+    <div class="fromis-title">fromis_9 🎵 5초 미리듣기</div>
     <div class="fromis-subtitle">상큼한 프로미스나인 감성의 5초 제한 오디오 플레이어</div>
 </div>
 """, unsafe_allow_html=True)
 
 # 사이드바 설정
-st.sidebar.image("https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=600&auto=format&fit=crop", caption="🍀 flover Playlist Zone")
 st.sidebar.title("🍀 옵션 선택")
 
 audio_option = st.sidebar.radio(
@@ -97,7 +96,7 @@ audio_src = ""
 
 if audio_option == "기본 샘플 음악":
     # 샘플 음원 URL
-    audio_src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+    audio_src = "[https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3](https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3)"
     st.sidebar.info("💡 샘플 음원이 선택되었습니다.")
 else:
     uploaded_file = st.sidebar.file_uploader("MP3 음원 파일을 업로드하세요", type=["mp3", "wav", "ogg"])
@@ -116,7 +115,7 @@ def render_5sec_player(source):
     <html>
     <head>
         <style>
-            @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+            @import url('[https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css](https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)');
             body {{
                 font-family: 'Pretendard', sans-serif;
                 margin: 0;
@@ -234,7 +233,7 @@ def render_5sec_player(source):
         const alertMsg = document.getElementById('alertMsg');
         const statusBadge = document.getElementById('statusBadge');
 
-        const MAX_SECONDS = 5.0; // 엄격한 5초 제한
+        const MAX_SECONDS = 5.0; // 5초 제한
 
         function togglePlay() {{
             if (audio.paused) {{
@@ -265,11 +264,10 @@ def render_5sec_player(source):
             statusBadge.innerText = '⏱️ 최대 5초 감상 가능';
         }}
 
-        // 재생 시간 실시간 체크 (5초 초과 시 즉시 차단)
+        // 재생 시간 실시간 체크 (5초 초과 시 차단)
         audio.addEventListener('timeupdate', () => {{
             const current = audio.currentTime;
             
-            // 5초에 도달하면 즉시 멈추고 5초 시점으로 정지
             if (current >= MAX_SECONDS) {{
                 audio.pause();
                 audio.currentTime = MAX_SECONDS;
@@ -282,12 +280,10 @@ def render_5sec_player(source):
                 return;
             }}
 
-            // 진행바 및 시간 업데이트
             const percentage = (current / MAX_SECONDS) * 100;
             progressBar.style.width = percentage + '%';
             
             const secs = Math.floor(current);
-            const millis = Math.floor((current - secs) * 10);
             currentTimeElem.innerText = `00:0${{secs}}`;
         }});
 
@@ -313,16 +309,3 @@ st.markdown("""
     🍀 FLOVER Fan Zone | 프로미스나인 스페셜 타이머 플레이어
 </div>
 """, unsafe_allow_html=True)
-```eof
-
-프로미스나인의 청량한 무드를 담은 `main.py` 코드가 완성되었습니다!
-
-### 🌟 주요 디자인 & 기능 포인트
-1. **프로미스나인(fromis_9) 테마 디자인**
-   - 상큼한 민트(`#5DE2A4`), 파스텔 핑크(`#FF7597`), 하늘색 파스텔 그라데이션 배경을 적용했습니다.
-   - 행운의 상징인 네잎클로버(🍀) 및 플로버(flover) 컨셉 배지를 배치했습니다.
-2. **엄격한 5초 재생 제한**
-   - 자바스크립트 `timeupdate` 이벤트를 통해 오디오가 5초에 다다르는 순간 즉시 재생을 일시정지하고 시간을 5초에 고정시킵니다.
-   - 5초용 실시간 진행바 및 카운트다운 타이머를 탑재했습니다.
-3. **음원 선택 지원**
-   - 사이드바에서 샘플 음악 또는 직접 MP3/WAV 파일을 업로드하여 바로 테스트해 보실 수 있습니다.
