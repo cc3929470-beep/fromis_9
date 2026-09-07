@@ -8,7 +8,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Custom CSS
+# 프로미스나인 감성 Custom CSS
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -82,49 +82,49 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 프로미스나인 검증된 공식 유튜브 ID 및 하이라이트 구간 설정
+# 곡 데이터 (프로미스나인 공식 유튜브 ID 및 5초 하이라이트 시작 시각)
 QUIZ_DATA = [
     {
-        "yt_id": "B0yioML-1j8",  # Supersonic (공식 MV)
+        "yt_id": "OrrZ-TiTbPg", # Supersonic
         "start_sec": 45,
         "answer": "Supersonic",
-        "options": ["Supersonic", "WE GO", "DM", "Stay This Way"]
+        "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
-        "yt_id": "HM633a928Bw",  # WE GO (공식 MV)
-        "start_sec": 38,
-        "answer": "WE GO",
-        "options": ["LOVE BOMB", "WE GO", "FUN!", "Talk & Talk"]
-    },
-    {
-        "yt_id": "4gX_lOuE34k",  # DM (공식 MV)
-        "start_sec": 50,
-        "answer": "DM",
-        "options": ["Supersonic", "DM", "WE GO", "Stay This Way"]
-    },
-    {
-        "yt_id": "51a3_fJTo3U",  # Stay This Way (공식 MV)
-        "start_sec": 40,
-        "answer": "Stay This Way",
-        "options": ["FUN!", "LOVE BOMB", "Stay This Way", "DM"]
-    },
-    {
-        "yt_id": "893y322I_Wk",  # LOVE BOMB (공식 MV)
-        "start_sec": 55,
-        "answer": "LOVE BOMB",
-        "options": ["LOVE BOMB", "WE GO", "Talk & Talk", "Supersonic"]
-    },
-    {
-        "yt_id": "3M_yDq-88_s",  # FUN! (공식 MV)
-        "start_sec": 42,
-        "answer": "FUN!",
-        "options": ["DM", "Stay This Way", "FUN!", "LOVE BOMB"]
-    },
-    {
-        "yt_id": "hw4T0EaR6k8",  # Talk & Talk (공식 MV)
+        "yt_id": "sWyZMFmTfQs", # WE GO
         "start_sec": 35,
-        "answer": "Talk & Talk",
-        "options": ["WE GO", "Talk & Talk", "Supersonic", "FUN!"]
+        "answer": "WE GO",
+        "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
+    },
+    {
+        "yt_id": "J_Ou8BsADlA", # Sky Runner
+        "start_sec": 20,
+        "answer": "Sky Runner",
+        "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
+    },
+    {
+        "yt_id": "hFVehbANxQE", # Vitamin Me
+        "start_sec": 30,
+        "answer": "Vitamin Me",
+        "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
+    },
+    {
+        "yt_id": "4pXfGL4tiTE", # I Like You Better
+        "start_sec": 25,
+        "answer": "I Like You Better",
+        "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
+    },
+    {
+        "yt_id": "gkJsrDEVask", # 하얀 그리움
+        "start_sec": 40,
+        "answer": "하얀 그리움",
+        "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
+    },
+    {
+        "yt_id": "ZuCc2Oi2fM0", # From
+        "start_sec": 30,
+        "answer": "From",
+        "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
 ]
 
@@ -137,10 +137,10 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 5초 자동 멈춤 유튜브 플레이어 렌더링
-def render_youtube_5sec_player(yt_id, start_sec):
+# 유튜브 공식 음원 5초 렌더링 함수
+def render_youtube_5sec_player(yt_id, start_sec, q_num):
     end_sec = start_sec + 5
-    embed_src = f"https://www.youtube.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=1&rel=0&enablejsapi=1"
+    embed_src = f"https://www.youtube.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=1&enablejsapi=1"
     
     html_code = f"""
     <!DOCTYPE html>
@@ -203,9 +203,11 @@ def render_youtube_5sec_player(yt_id, start_sec):
                 var box = document.getElementById('yt-box');
                 var status = document.getElementById('txt-status');
                 
+                // 기존 프레임 제거 및 초기화
                 box.innerHTML = '';
                 if(timer) clearTimeout(timer);
 
+                // 새 문제 음원 iframe 동적 생성 (자동재생 적용)
                 var iframe = document.createElement('iframe');
                 iframe.setAttribute('src', '{embed_src}');
                 iframe.setAttribute('allow', 'autoplay');
@@ -213,6 +215,7 @@ def render_youtube_5sec_player(yt_id, start_sec):
 
                 status.innerText = "🎵 프로미스나인 공식 음원 5초 재생 중...";
 
+                // 정확히 5.5초 후 iframe 제거하여 음악 정지
                 timer = setTimeout(function() {{
                     box.innerHTML = '';
                     status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
@@ -228,7 +231,8 @@ def render_youtube_5sec_player(yt_id, start_sec):
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"])
+    # 문제마다 새로고침 처리
+    render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"], st.session_state.q_idx)
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
