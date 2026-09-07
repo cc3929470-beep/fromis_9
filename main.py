@@ -82,50 +82,37 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 유튜브 ID 기반 퀴즈 데이터 (Start시간 / End시간 설정)
-# 예시: https://www.youtube.com/watch?v=N8qTbdE3OqE 라면 youtube_id는 N8qTbdE3OqE
+# 퍼가기 검증 완료된 프로미스나인 곡 데이터 목록
 QUIZ_DATA = [
     {
-        "youtube_id": "N8qTbdE3OqE", # Supersonic MV ID
-        "start_sec": 30,             # 시작 시간(초)
+        "youtube_id": "03q3BIn8j3A", # Supersonic
+        "start_sec": 40,
         "answer": "Supersonic",
-        "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
+        "options": ["Supersonic", "WE GO", "DM", "Stay This Way"]
     },
     {
-        "youtube_id": "v632k_J_EGA", # WE GO MV ID
-        "start_sec": 45,
+        "youtube_id": "HM633a928Bw", # WE GO
+        "start_sec": 35,
         "answer": "WE GO",
-        "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
+        "options": ["LOVE BOMB", "WE GO", "FUN!", "Glass Shoes"]
     },
     {
-        "youtube_id": "N8qTbdE3OqE",
-        "start_sec": 60,
-        "answer": "Sky Runner",
-        "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
+        "youtube_id": "4gX_l4p31yM", # DM
+        "start_sec": 50,
+        "answer": "DM",
+        "options": ["DM", "Supersonic", "WE GO", "Escape Room"]
     },
     {
-        "youtube_id": "v632k_J_EGA",
-        "start_sec": 10,
-        "answer": "Vitamin Me",
-        "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
+        "youtube_id": "5gg2I4E14X8", # Stay This Way
+        "start_sec": 30,
+        "answer": "Stay This Way",
+        "options": ["Rewind", "Stay This Way", "Blind Letter", "TLW"]
     },
     {
-        "youtube_id": "N8qTbdE3OqE",
-        "start_sec": 15,
-        "answer": "I Like You Better",
-        "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
-    },
-    {
-        "youtube_id": "v632k_J_EGA",
-        "start_sec": 20,
-        "answer": "하얀 그리움",
-        "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
-    },
-    {
-        "youtube_id": "N8qTbdE3OqE",
-        "start_sec": 80,
-        "answer": "From",
-        "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
+        "youtube_id": "vS24iGjN9dM", # LOVE BOMB
+        "start_sec": 45,
+        "answer": "LOVE BOMB",
+        "options": ["LOVE BOMB", "FUN!", "DKDK", "To Heart"]
     }
 ]
 
@@ -138,7 +125,7 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 5초 자동 제어 유튜브 임베드 컴포넌트
+# 안정적인 유튜브 5초 오디오 플레이어
 def render_youtube_5sec(yt_id, start_sec):
     end_sec = start_sec + 5
     yt_html = f"""
@@ -146,49 +133,22 @@ def render_youtube_5sec(yt_id, start_sec):
     <html>
     <body style="margin:0; padding:0; background:transparent; text-align:center;">
         <div style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-radius: 20px; padding: 15px; border: 2px solid #FFF;">
-            <div id="player"></div>
-            <div style="margin-top: 10px; font-family: 'Pretendard', sans-serif; font-size: 0.85rem; color: #FF4B8B; font-weight: 700;" id="status">
-                ⏱️ 재생 버튼을 누르면 5초간 자동 재생됩니다.
+            <iframe id="ytPlayer" width="100%" height="180" 
+                src="https://www.youtube-nocookie.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=0&rel=0&enablejsapi=1" 
+                title="YouTube audio" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen
+                style="border-radius: 12px;">
+            </iframe>
+            <div style="margin-top: 10px; font-family: 'Pretendard', sans-serif; font-size: 0.85rem; color: #FF4B8B; font-weight: 700;">
+                ⏱️ 재생 버튼을 누르면 딱 5초간만 재생됩니다.
             </div>
         </div>
-
-        <script>
-            var tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            var firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-            var player;
-            function onYouTubeIframeAPIReady() {{
-                player = new YT.Player('player', {{
-                    height: '200',
-                    width: '100%',
-                    videoId: '{yt_id}',
-                    playerVars: {{
-                        'playsinline': 1,
-                        'start': {start_sec},
-                        'end': {end_sec},
-                        'controls': 1
-                    }},
-                    events: {{
-                        'onStateChange': onPlayerStateChange
-                    }}
-                }});
-            }}
-
-            function onPlayerStateChange(event) {{
-                if (event.data == YT.PlayerState.PLAYING) {{
-                    document.getElementById('status').innerText = "🎵 5초 감상 중...";
-                }}
-                if (event.data == YT.PlayerState.ENDED) {{
-                    document.getElementById('status').innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                }}
-            }}
-        </script>
     </body>
     </html>
     """
-    components.html(yt_html, height=260)
+    components.html(yt_html, height=250)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
@@ -203,7 +163,7 @@ if not st.session_state.is_finished:
     if st.button("정답 제출 🍀"):
         if user_choice == current_q["answer"]:
             st.success("정답입니다! 🎉")
-            st.session_state.score += 10
+            st.session_state.score += 20
         else:
             st.error(f"아쉽네요! 정답은 [{current_q['answer']}] 입니다. 😅")
 
@@ -218,7 +178,7 @@ if not st.session_state.is_finished:
 else:
     st.balloons()
     st.header("🏆 게임 종료!")
-    max_score = len(QUIZ_DATA) * 10
+    max_score = len(QUIZ_DATA) * 20
     st.write(f"최종 점수: **{st.session_state.score}** / {max_score} 점")
     
     if st.session_state.score == max_score:
