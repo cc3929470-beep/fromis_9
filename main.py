@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 페이지 기본 설정 (Light 모드 강제 적용 스타일 포함)
+# 페이지 기본 설정
 st.set_page_config(
     page_title="fromis_9 5초 음원 퀴즈",
     page_icon="🍀",
@@ -13,7 +13,7 @@ st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
-    /* Light 모드 강제 고정 및 테마 배경 설정 */
+    /* Light 모드 강제 고정 */
     :root {
         color-scheme: light !important;
     }
@@ -153,47 +153,47 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 곡 데이터 (audio_url 부분에 실제 MP3 파일 주소를 넣어야 모바일에서 백프로 재생됩니다)
+# 곡 데이터 (테스트용 공용 MP3 URL)
 QUIZ_DATA = [
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", # 예시 오디오 주소 (실제 5초 MP3 URL로 교체 가능)
-        "start_sec": 0,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        "start_sec": 10,
         "answer": "Supersonic",
         "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
         "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        "start_sec": 0,
+        "start_sec": 15,
         "answer": "WE GO",
         "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
     },
     {
         "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        "start_sec": 0,
+        "start_sec": 5,
         "answer": "Sky Runner",
         "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
     },
     {
         "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-        "start_sec": 0,
+        "start_sec": 20,
         "answer": "Vitamin Me",
         "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
     },
     {
         "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-        "start_sec": 0,
+        "start_sec": 30,
         "answer": "I Like You Better",
         "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
     },
     {
         "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-        "start_sec": 0,
+        "start_sec": 12,
         "answer": "하얀 그리움",
         "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
     },
     {
         "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-        "start_sec": 0,
+        "start_sec": 8,
         "answer": "From",
         "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
@@ -208,8 +208,8 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 모바일 호환 오디오 플레이어 함수
-def render_audio_5sec_player(audio_url, start_sec):
+# 확실하게 작동하는 오디오 플레이어 함수
+def render_audio_5sec_player(audio_url, start_sec, key_id):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -253,51 +253,60 @@ def render_audio_5sec_player(audio_url, start_sec):
     </head>
     <body>
         <div class="card">
-            <button class="btn-play" onclick="playAudio()">▶ 5초 하이라이트 듣기</button>
-            <div class="status" id="txt-status">버튼을 누르면 음원이 5초간 재생됩니다.</div>
+            <button class="btn-play" onclick="playAudio_{key_id}()">▶ 5초 하이라이트 듣기</button>
+            <div class="status" id="txt-status-{key_id}">버튼을 누르면 음원이 5초간 재생됩니다.</div>
         </div>
 
-        <audio id="myAudio" preload="auto">
-            <source src="{audio_url}" type="audio/mpeg">
-        </audio>
-
         <script>
-            var audio = document.getElementById('myAudio');
-            var timer = null;
+            var currentAudio = null;
+            var currentTimer = null;
 
-            function playAudio() {{
-                var status = document.getElementById('txt-status');
+            function playAudio_{key_id}() {{
+                var status = document.getElementById('txt-status-{key_id}');
                 
-                if (timer) clearTimeout(timer);
-                
-                audio.currentTime = {start_sec};
-                
-                // 유저의 터치/클릭 이벤트 핸들러 내부에서 바로 play() 호출 (모바일 브라우저 보안 허용 조건)
-                var playPromise = audio.play();
-                
-                if (playPromise !== undefined) {{
-                    playPromise.then(function() {{
-                        status.innerText = "🎵 음원 5초 재생 중...";
-                        timer = setTimeout(function() {{
-                            audio.pause();
-                            status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                        }}, 5000);
-                    }}).catch(function(error) {{
-                        status.innerText = "⚠️ 재생 실패: 음원 링크를 확인해 주세요.";
-                    }});
+                // 기존 재생 중인 오디오 정지
+                if (currentAudio) {{
+                    currentAudio.pause();
+                    currentAudio = null;
                 }}
+                if (currentTimer) {{
+                    clearTimeout(currentTimer);
+                }}
+
+                status.innerText = "⏳ 음원을 불러오는 중...";
+
+                // 버튼 클릭 이벤트 내부에서 직접 Audio 객체 생성 (모바일 및 PC 제약 우회)
+                currentAudio = new Audio('{audio_url}');
+                currentAudio.crossOrigin = "anonymous";
+                currentAudio.currentTime = {start_sec};
+
+                currentAudio.play().then(function() {{
+                    status.innerText = "🎵 음원 5초 재생 중...";
+                    
+                    // 정확히 5초 후 일시정지
+                    currentTimer = setTimeout(function() {{
+                        if (currentAudio) {{
+                            currentAudio.pause();
+                        }}
+                        status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
+                    }}, 5000);
+                }}).catch(function(error) {{
+                    console.error("Audio Play Error:", error);
+                    status.innerText = "⚠️ 음원 로딩에 실패했습니다. 링크 또는 네트워크를 확인해주세요.";
+                }});
             }}
         </script>
     </body>
     </html>
     """
-    components.html(html_code, height=140)
+    components.html(html_code, height=140, key=f"comp_{key_id}")
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_audio_5sec_player(current_q["audio_url"], current_q["start_sec"])
+    # 문제마다 고유한 key 전달
+    render_audio_5sec_player(current_q["audio_url"], current_q["start_sec"], st.session_state.q_idx)
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
