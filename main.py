@@ -15,6 +15,7 @@ st.markdown("""
     
     * { font-family: 'Pretendard', sans-serif; }
     
+    /* 1. 움직이는 파스텔 그라데이션 애니메이션 배경 */
     .stApp {
         background: linear-gradient(-45deg, #E8FAF8, #FFF1F5, #EBF4FF, #dffff2) !important;
         background-size: 400% 400% !important;
@@ -27,6 +28,7 @@ st.markdown("""
         100% { background-position: 0% 50%; }
     }
 
+    /* 2. 메인 컨텐츠 영역 글래스모피즘 */
     .block-container {
         background: rgba(255, 255, 255, 0.45);
         backdrop-filter: blur(15px);
@@ -39,6 +41,7 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.6);
     }
 
+    /* 3. 헤더 영역 업그레이드 */
     .fromis-header {
         text-align: center;
         padding: 30px 20px;
@@ -50,6 +53,27 @@ st.markdown("""
         margin-bottom: 30px;
         position: relative;
         overflow: hidden;
+    }
+    
+    .fromis-header::before {
+        content: '';
+        position: absolute;
+        top: -50%; left: -50%;
+        width: 200%; height: 200%;
+        background: linear-gradient(
+            to right, 
+            rgba(255,255,255,0) 0%, 
+            rgba(255,255,255,0.6) 50%, 
+            rgba(255,255,255,0) 100%
+        );
+        transform: rotate(45deg);
+        animation: shine 4s infinite;
+        pointer-events: none;
+    }
+
+    @keyframes shine {
+        0% { transform: translateX(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) rotate(45deg); }
     }
 
     .fromis-badge {
@@ -74,6 +98,7 @@ st.markdown("""
         margin: 8px 0;
     }
 
+    /* 선택지 라디오 버튼 */
     div[data-testid="stRadio"] > label { 
         font-weight: 800 !important; 
         color: #2D3748 !important; 
@@ -88,6 +113,7 @@ st.markdown("""
         box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
     }
 
+    /* 정답 제출 버튼 */
     .stButton>button {
         background: linear-gradient(135deg, #FF7597 0%, #FF4B8B 100%) !important;
         color: white !important;
@@ -117,25 +143,49 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 곡 데이터 (샘플 음원 링크 - 실제 MP3/AAC 파일 URL로 교체하여 사용 가능합니다)
+# 곡 데이터
 QUIZ_DATA = [
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        "start_sec": 30,
+        "yt_id": "OrrZ-TiTbPg", # Supersonic
+        "start_sec": 45,
         "answer": "Supersonic",
         "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        "start_sec": 20,
+        "yt_id": "sWyZMFmTfQs", # WE GO
+        "start_sec": 35,
         "answer": "WE GO",
         "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        "start_sec": 15,
+        "yt_id": "J_Ou8BsADlA", # Sky Runner
+        "start_sec": 20,
         "answer": "Sky Runner",
         "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
+    },
+    {
+        "yt_id": "hFVehbANxQE", # Vitamin Me
+        "start_sec": 30,
+        "answer": "Vitamin Me",
+        "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
+    },
+    {
+        "yt_id": "4pXfGL4tiTE", # I Like You Better
+        "start_sec": 25,
+        "answer": "I Like You Better",
+        "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
+    },
+    {
+        "yt_id": "gkJsrDEVask", # 하얀 그리움
+        "start_sec": 40,
+        "answer": "하얀 그리움",
+        "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
+    },
+    {
+        "yt_id": "ZuCc2Oi2fM0", # From
+        "start_sec": 30,
+        "answer": "From",
+        "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
 ]
 
@@ -148,8 +198,8 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 접속 기기 내장 스피커 강제 라우팅 플레이어
-def render_device_speaker_player(audio_url, start_sec):
+# 유튜브 플레이어 + 출력 기기 선택 지원 컴포넌트
+def render_youtube_5sec_player(yt_id, start_sec, q_num):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -181,68 +231,155 @@ def render_device_speaker_player(audio_url, start_sec):
                 border-radius: 50px;
                 cursor: pointer;
                 box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
+                margin-bottom: 12px;
             }}
             .status {{
-                margin-top: 10px;
+                margin-top: 8px;
                 font-size: 0.85rem;
                 color: #FF4B8B;
                 font-weight: 700;
+            }}
+            .device-select-container {{
+                margin-top: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-size: 0.8rem;
+                color: #4A5568;
+                font-weight: 600;
+            }}
+            select {{
+                padding: 6px 12px;
+                border-radius: 12px;
+                border: 1px solid #CBD5E0;
+                background-color: white;
+                font-size: 0.8rem;
+                outline: none;
+                max-width: 220px;
+            }}
+            .hidden-yt {{
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                opacity: 0.01;
+                overflow: hidden;
+                left: -9999px;
             }}
         </style>
     </head>
     <body>
         <div class="card">
-            <button class="btn-play" onclick="playOnDeviceSpeaker()">▶ 5초 하이라이트 듣기</button>
-            <div class="status" id="txt-status">버튼을 누르면 기기 스피커로 5초간 재생됩니다.</div>
+            <button class="btn-play" onclick="startPlay()">▶ 5초 하이라이트 듣기</button>
+            
+            <!-- 출력 기기 선택 UI -->
+            <div class="device-select-container">
+                <label for="audio-output">🔊 출력 장치:</label>
+                <select id="audio-output" onchange="changeAudioOutput(this.value)">
+                    <option value="">기본 스피커/헤드폰</option>
+                </select>
+            </div>
+
+            <div class="status" id="txt-status">버튼을 누르면 공식 음원이 5초간 재생됩니다.</div>
         </div>
 
-        <audio id="audio-element" src="{audio_url}" preload="auto"></audio>
+        <div class="hidden-yt">
+            <iframe id="yt-iframe" src="https://www.youtube.com/embed/{yt_id}?enablejsapi=1&playsinline=1&controls=0&disablekb=1&rel=0" allow="autoplay"></iframe>
+        </div>
 
         <script>
+            var tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            var firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+            var player;
             var timer = null;
+            var isReady = false;
 
-            async function playOnDeviceSpeaker() {{
-                var audio = document.getElementById('audio-element');
-                var status = document.getElementById('txt-status');
-
-                try {{
-                    // 접속 기기의 기본 내장 출력 디바이스(Default Speaker) 검색 및 라우팅
-                    if (typeof audio.setSinkId === 'function' && navigator.mediaDevices) {{
-                        const devices = await navigator.mediaDevices.enumerateDevices();
-                        const defaultSpeaker = devices.find(d => d.kind === 'audiooutput' && d.deviceId === 'default');
-                        if (defaultSpeaker) {{
-                            await audio.setSinkId(defaultSpeaker.deviceId);
-                        }}
+            function onYouTubeIframeAPIReady() {{
+                player = new YT.Player('yt-iframe', {{
+                    events: {{
+                        'onReady': onPlayerReady
                     }}
+                }});
+            }}
 
-                    audio.currentTime = {start_sec};
-                    audio.volume = 1.0;
-                    await audio.play();
+            function onPlayerReady(event) {{
+                isReady = true;
+                loadAudioDevices();
+            }}
 
-                    status.innerText = "🎵 기기 스피커로 5초간 재생 중...";
-
-                    if (timer) clearTimeout(timer);
-                    timer = setTimeout(function() {{
-                        audio.pause();
-                        status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                    }}, 5000);
-
-                }} catch (err) {{
-                    console.error("오디오 재생 오류:", err);
-                    status.innerText = "⚠️ 재생 중 오류가 발생했습니다. 브라우저 설정을 확인해주세요.";
+            // 연결된 오디오 출력 장치 목록 로드
+            async function loadAudioDevices() {{
+                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {{
+                    return;
                 }}
+                
+                try {{
+                    // 마이크 권한 요청 등으로 deviceId 라벨 가져오기 활성화
+                    await navigator.mediaDevices.getUserMedia({{ audio: true }}).catch(() => {{}});
+                    
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+                    const select = document.getElementById('audio-output');
+                    
+                    select.innerHTML = '<option value="">기본 기기 (Default)</option>';
+                    audioOutputs.forEach(device => {{
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `스피커 ${{select.length}}`;
+                        select.appendChild(option);
+                    }});
+                }} catch (e) {{
+                    console.log("출력 기기 목록을 가져올 수 없습니다:", e);
+                }}
+            }}
+
+            // 출력 장치 변경 적용
+            async function changeAudioOutput(deviceId) {{
+                const iframe = document.getElementById('yt-iframe');
+                if (iframe && typeof iframe.setSinkId === 'function') {{
+                    try {{
+                        await iframe.setSinkId(deviceId);
+                    }} catch (error) {{
+                        console.error('출력 장치 변경 실패:', error);
+                    }}
+                }}
+            }}
+
+            function startPlay() {{
+                var status = document.getElementById('txt-status');
+                if (!isReady || !player) {{
+                    status.innerText = "⏳ 음원을 불러오는 중입니다. 잠시 후 다시 눌러주세요.";
+                    return;
+                }}
+
+                if (timer) clearTimeout(timer);
+
+                player.unMute();
+                player.setVolume(100);
+                player.seekTo({start_sec}, true);
+                player.playVideo();
+
+                status.innerText = "🎵 프로미스나인 공식 음원 5초 재생 중...";
+
+                timer = setTimeout(function() {{
+                    player.pauseVideo();
+                    status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
+                }}, 5000);
             }}
         </script>
     </body>
     </html>
     """
-    components.html(html_code, height=140)
+    components.html(html_code, height=190)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_device_speaker_player(current_q["audio_url"], current_q["start_sec"])
+    render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"], st.session_state.q_idx)
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
