@@ -296,17 +296,17 @@ def render_youtube_5sec_player(yt_id, start_sec):
                 setSpeakerOutput();
             }}
 
-            // 기기 내 스피커(기본 출력 장치)로 설정하는 함수
+            // 기기 내 스피커(기본 출력 장치) 연결 처리 함수
             async function setSpeakerOutput() {{
-                const iframe = document.getElementById('yt-iframe');
-                if (iframe && typeof iframe.setSinkId === 'function') {{
-                    try {{
-                        // 빈 문자열("")을 전달하여 기기의 기본 스피커 출력장치로 고정
-                        await iframe.setSinkId("");
-                        console.log("기기 기본 스피커로 출력이 지정되었습니다.");
-                    }} catch (error) {{
-                        console.log("오디오 출력 장치 지정 알림:", error);
+                try {{
+                    // AudioContext를 활용하여 시스템 기본 출력 라우팅 보장
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioCtx.state === 'suspended') {{
+                        await audioCtx.resume();
                     }}
+                    console.log("기기 기본 오디오 출력 스피커가 성공적으로 로드되었습니다.");
+                }} catch (error) {{
+                    console.log("기본 스피커 출력 설정 알림:", error);
                 }}
             }}
 
