@@ -131,18 +131,6 @@ st.markdown("""
         transform: translateY(-4px);
         box-shadow: 0 10px 25px rgba(255, 75, 139, 0.5) !important;
     }
-
-    /* 오디오 안내 박스 스타일 */
-    .audio-notice {
-        background: rgba(255, 255, 255, 0.6);
-        border: 1px solid rgba(255, 117, 151, 0.3);
-        border-radius: 12px;
-        padding: 10px;
-        font-size: 0.8rem;
-        color: #555;
-        margin-top: 10px;
-        text-align: center;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -210,7 +198,7 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 유튜브 공식 음원 5초 렌더링 함수
+# 유튜브 플레이어 + 출력 기기 선택 지원 컴포넌트
 def render_youtube_5sec_player(yt_id, start_sec, q_num):
     html_code = f"""
     <!DOCTYPE html>
@@ -243,12 +231,32 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
                 border-radius: 50px;
                 cursor: pointer;
                 box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
+                margin-bottom: 12px;
             }}
             .status {{
-                margin-top: 10px;
+                margin-top: 8px;
                 font-size: 0.85rem;
                 color: #FF4B8B;
                 font-weight: 700;
+            }}
+            .device-select-container {{
+                margin-top: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-size: 0.8rem;
+                color: #4A5568;
+                font-weight: 600;
+            }}
+            select {{
+                padding: 6px 12px;
+                border-radius: 12px;
+                border: 1px solid #CBD5E0;
+                background-color: white;
+                font-size: 0.8rem;
+                outline: none;
+                max-width: 220px;
             }}
             .hidden-yt {{
                 position: absolute;
@@ -263,11 +271,20 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
     <body>
         <div class="card">
             <button class="btn-play" onclick="startPlay()">▶ 5초 하이라이트 듣기</button>
+            
+            <!-- 출력 기기 선택 UI -->
+            <div class="device-select-container">
+                <label for="audio-output">🔊 출력 장치:</label>
+                <select id="audio-output" onchange="changeAudioOutput(this.value)">
+                    <option value="">기본 스피커/헤드폰</option>
+                </select>
+            </div>
+
             <div class="status" id="txt-status">버튼을 누르면 공식 음원이 5초간 재생됩니다.</div>
         </div>
 
         <div class="hidden-yt">
-            <div id="player"></div>
+            <iframe id="yt-iframe" src="https://www.youtube.com/embed/{yt_id}?enablejsapi=1&playsinline=1&controls=0&disablekb=1&rel=0" allow="autoplay"></iframe>
         </div>
 
         <script>
@@ -281,16 +298,7 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
             var isReady = false;
 
             function onYouTubeIframeAPIReady() {{
-                player = new YT.Player('player', {{
-                    height: '1',
-                    width: '1',
-                    videoId: '{yt_id}',
-                    playerVars: {{
-                        'playsinline': 1,
-                        'controls': 0,
-                        'disablekb': 1,
-                        'rel': 0
-                    }},
+                player = new YT.Player('yt-iframe', {{
                     events: {{
                         'onReady': onPlayerReady
                     }}
@@ -299,6 +307,45 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
 
             function onPlayerReady(event) {{
                 isReady = true;
+                loadAudioDevices();
+            }}
+
+            // 연결된 오디오 출력 장치 목록 로드
+            async function loadAudioDevices() {{
+                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {{
+                    return;
+                }}
+                
+                try {{
+                    // 마이크 권한 요청 등으로 deviceId 라벨 가져오기 활성화
+                    await navigator.mediaDevices.getUserMedia({{ audio: true }}).catch(() => {{}});
+                    
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+                    const select = document.getElementById('audio-output');
+                    
+                    select.innerHTML = '<option value="">기본 기기 (Default)</option>';
+                    audioOutputs.forEach(device => {{
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `스피커 ${{select.length}}`;
+                        select.appendChild(option);
+                    }});
+                }} catch (e) {{
+                    console.log("출력 기기 목록을 가져올 수 없습니다:", e);
+                }}
+            }}
+
+            // 출력 장치 변경 적용
+            async function changeAudioOutput(deviceId) {{
+                const iframe = document.getElementById('yt-iframe');
+                if (iframe && typeof iframe.setSinkId === 'function') {{
+                    try {{
+                        await iframe.setSinkId(deviceId);
+                    }} catch (error) {{
+                        console.error('출력 장치 변경 실패:', error);
+                    }}
+                }}
             }}
 
             function startPlay() {{
@@ -310,7 +357,6 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
 
                 if (timer) clearTimeout(timer);
 
-                // 재생 및 볼륨/음소거 해제 강제 적용
                 player.unMute();
                 player.setVolume(100);
                 player.seekTo({start_sec}, true);
@@ -327,23 +373,13 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
     </body>
     </html>
     """
-    components.html(html_code, height=140)
+    components.html(html_code, height=190)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
     render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"], st.session_state.q_idx)
-
-    # 출력 기기 체크 안내 메시지
-    st.markdown("""
-    <div class="audio-notice">
-        💡 <b>소리가 들리지 않나요?</b><br>
-        • PC/모바일의 시스템 미디어 볼륨을 확인해주세요.<br>
-        • 아이폰(iOS)의 경우 무음 모드 스위치가 켜져 있으면 소리가 나지 않을 수 있습니다.<br>
-        • 블루투스 이어폰 연결 상태를 점검해주세요.
-    </div>
-    """, unsafe_allow_html=True)
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
