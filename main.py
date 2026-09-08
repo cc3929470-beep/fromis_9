@@ -8,7 +8,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 프로미스나인 감성 Custom CSS (업그레이드 버전)
+# 프로미스나인 감성 Custom CSS
 st.markdown("""
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -30,7 +30,7 @@ st.markdown("""
     100% { background-position: 0% 50%; }
 }
 
-/* 2. 메인 컨텐츠 영역 글래스모피즘 (투명 유리 효과) */
+/* 2. 메인 컨텐츠 영역 글래스모피즘 */
 .block-container {
     background: rgba(255, 255, 255, 0.45);
     backdrop-filter: blur(15px);
@@ -43,7 +43,7 @@ st.markdown("""
     border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-/* 3. 헤더 영역 업그레이드 (반짝이는 빛 효과 추가) */
+/* 3. 헤더 영역 */
 .fromis-header {
     text-align: center;
     padding: 30px 20px;
@@ -57,7 +57,6 @@ st.markdown("""
     overflow: hidden;
 }
 
-/* 헤더 대각선 빛 애니메이션 */
 .fromis-header::before {
     content: '';
     position: absolute;
@@ -101,7 +100,7 @@ st.markdown("""
     margin: 8px 0;
 }
 
-/* 선택지(라디오 버튼) 디자인 */
+/* 선택지 디자인 */
 div[data-testid="stRadio"] > label { 
     font-weight: 800 !important; 
     color: #2D3748 !important; 
@@ -116,7 +115,7 @@ div[role="radiogroup"] {
     box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
 }
 
-/* 4. 정답 제출 버튼 디자인 (입체감 + 호버 시 떠오르는 효과) */
+/* 버튼 디자인 */
 .stButton>button {
     background: linear-gradient(135deg, #FF7597 0%, #FF4B8B 100%) !important;
     color: white !important;
@@ -146,7 +145,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 곡 데이터 (모바일 호환성을 위한 고품질 오디오 스트리밍 URL)
+# 퀴즈 데이터
 QUIZ_DATA = [
     {
         "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
@@ -201,8 +200,8 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 모바일 웹 호환 및 출력 장치 설정 지원 오디오 플레이어 함수
-def render_mobile_friendly_audio_player(audio_url, start_sec):
+# 기기 내장 스피커 전용 오디오 플레이어 함수
+def render_internal_speaker_audio_player(audio_url, start_sec):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -221,7 +220,7 @@ def render_mobile_friendly_audio_player(audio_url, start_sec):
                 background: rgba(255, 255, 255, 0.85);
                 backdrop-filter: blur(12px);
                 border-radius: 20px;
-                padding: 16px;
+                padding: 18px;
                 border: 2px solid #FFF;
                 box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             }}
@@ -238,43 +237,26 @@ def render_mobile_friendly_audio_player(audio_url, start_sec):
                 outline: none;
                 width: 100%;
                 max-width: 300px;
-                transition: transform 0.2s ease;
-            }}
-            .btn-play:active {{
-                transform: scale(0.97);
-            }}
-            .device-select-container {{
-                margin-top: 10px;
-                display: none; /* 출력 장치 설정 지원 브라우저에서만 활성화 */
-            }}
-            .device-select {{
-                padding: 6px 12px;
-                border-radius: 12px;
-                border: 1px solid #CBD5E0;
-                font-size: 0.8rem;
-                color: #4A5568;
-                outline: none;
-                background: #FFFFFF;
-                max-width: 250px;
             }}
             .status {{
-                margin-top: 10px;
+                margin-top: 12px;
                 font-size: 0.85rem;
                 color: #FF4B8B;
                 font-weight: 700;
+            }}
+            .speaker-info {{
+                font-size: 0.75rem;
+                color: #4A5568;
+                margin-top: 6px;
+                font-weight: 600;
             }}
         </style>
     </head>
     <body>
         <div class="card">
-            <button class="btn-play" id="btn-play-trigger" onclick="handlePlayClick()">▶ 5초 하이라이트 듣기</button>
-            
-            <div class="device-select-container" id="device-container">
-                <span style="font-size: 0.75rem; color: #718096; font-weight: 600;">🔊 오디오 출력 장치:</span>
-                <select id="audio-device-select" class="device-select" onchange="changeAudioDevice()"></select>
-            </div>
-
-            <div class="status" id="txt-status">버튼을 누르면 음원이 5초간 재생됩니다.</div>
+            <button class="btn-play" onclick="playOnInternalSpeaker()">📢 기기 내장 스피커로 5초 듣기</button>
+            <div class="speaker-info">🔊 출력: 기기 기본/내장 스피커 고정</div>
+            <div class="status" id="txt-status">버튼을 누르면 내장 스피커로 음원이 5초간 재생됩니다.</div>
         </div>
 
         <audio id="main-audio" src="{audio_url}" preload="auto" crossorigin="anonymous"></audio>
@@ -282,83 +264,76 @@ def render_mobile_friendly_audio_player(audio_url, start_sec):
         <script>
             var audioElem = document.getElementById('main-audio');
             var statusElem = document.getElementById('txt-status');
-            var deviceContainer = document.getElementById('device-container');
-            var deviceSelect = document.getElementById('audio-device-select');
+            var audioCtx = null;
             var playTimer = null;
 
-            // 1. 브라우저 오디오 출력 장치(setSinkId) 지원 여부 확인 및 장치 목륵 구성
-            if (typeof audioElem.setSinkId === 'function' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {{
-                navigator.mediaDevices.enumerateDevices().then(function(devices) {{
-                    var audioOutputs = devices.filter(function(device) {{
-                        return device.kind === 'audiooutput';
-                    }});
-
-                    if (audioOutputs.length > 0) {{
-                        deviceSelect.innerHTML = '';
-                        audioOutputs.forEach(function(device, idx) {{
-                            var option = document.createElement('option');
-                            option.value = device.deviceId;
-                            option.text = device.label || ('출력 장치 ' + (idx + 1));
-                            deviceSelect.appendChild(option);
+            // 1. 기기 내장 스피커 출력 고정 로직
+            async function setInternalSpeakerDevice() {{
+                if (typeof audioElem.setSinkId === 'function' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {{
+                    try {{
+                        var devices = await navigator.mediaDevices.enumerateDevices();
+                        var internalSpeaker = devices.find(function(device) {{
+                            return device.kind === 'audiooutput' && (
+                                device.deviceId === 'default' || 
+                                device.label.toLowerCase().includes('speaker') || 
+                                device.label.toLowerCase().includes('built-in')
+                            );
                         }});
-                        deviceContainer.style.display = 'block';
-                    }}
-                }}).catch(function(err) {{
-                    console.log('장치 목록을 불러올 수 없습니다:', err);
-                }});
-            }}
 
-            // 2. 오디오 출력 장치 변경 함수
-            function changeAudioDevice() {{
-                var selectedDeviceId = deviceSelect.value;
-                if (typeof audioElem.setSinkId === 'function') {{
-                    audioElem.setSinkId(selectedDeviceId).then(function() {{
-                        statusElem.innerText = "🔊 오디오 출력 장치가 변경되었습니다.";
-                    }}).catch(function(err) {{
-                        console.error("출력 장치 변경 실패:", err);
-                    }});
+                        if (internalSpeaker) {{
+                            await audioElem.setSinkId(internalSpeaker.deviceId);
+                        }} else {{
+                            await audioElem.setSinkId('default');
+                        }}
+                    }} catch (e) {{
+                        console.log("기기 기본 스피커 지정 실패 (기본값 작동):", e);
+                    }}
                 }}
             }}
 
-            // 3. 모바일 터치 대응 및 5초 재생 함수
-            function handlePlayClick() {{
+            // 2. 내장 스피커 재생 함수
+            async function playOnInternalSpeaker() {{
                 if (playTimer) clearTimeout(playTimer);
-                
+
+                // Web Audio API Context를 통한 내장 스피커 출력 활성화
+                if (!audioCtx) {{
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }}
+                if (audioCtx.state === 'suspended') {{
+                    await audioCtx.resume();
+                }}
+
+                // 기본/내장 스피커 장치 바인딩
+                await setInternalSpeakerDevice();
+
                 audioElem.pause();
                 audioElem.currentTime = {start_sec};
+                statusElem.innerText = "⏳ 스피커를 준비하는 중...";
 
-                statusElem.innerText = "⏳ 음원을 준비 중입니다...";
+                try {{
+                    await audioElem.play();
+                    statusElem.innerText = "📢 기기 스피커로 5초 재생 중...";
 
-                // iOS / 모바일 오디오 재생 활성화 (User Gesture Context)
-                var playPromise = audioElem.play();
-
-                if (playPromise !== undefined) {{
-                    playPromise.then(function() {{
-                        statusElem.innerText = "🎵 프로미스나인 음원 5초 재생 중...";
-                        
-                        // 정확히 5초 후 재생 중지
-                        playTimer = setTimeout(function() {{
-                            audioElem.pause();
-                            statusElem.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                        }}, 5000);
-                    }}).catch(function(error) {{
-                        console.error("Audio Playback Error:", error);
-                        statusElem.innerText = "⚠️ 오디오 재생 실패 (기기 소음 모드 또는 네트워크를 확인해주세요)";
-                    }});
+                    playTimer = setTimeout(function() {{
+                        audioElem.pause();
+                        statusElem.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
+                    }}, 5000);
+                }} catch (err) {{
+                    console.error("재생 오류:", err);
+                    statusElem.innerText = "⚠️ 재생 실패: 아이폰의 경우 무음 모드를 해제해 주세요.";
                 }}
             }}
         </script>
     </body>
     </html>
     """
-    # 높이를 확장하여 선택 박스 레이아웃 유지
-    components.html(html_code, height=190)
+    components.html(html_code, height=160)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_mobile_friendly_audio_player(current_q["audio_url"], current_q["start_sec"])
+    render_internal_speaker_audio_player(current_q["audio_url"], current_q["start_sec"])
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
