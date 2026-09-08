@@ -8,7 +8,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 프로미스나인 감성 Custom CSS (업그레이드 버전)
+# 프로미스나인 감성 Custom CSS
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -28,7 +28,7 @@ st.markdown("""
         100% { background-position: 0% 50%; }
     }
 
-    /* 2. 메인 컨텐츠 영역 글래스모피즘 (투명 유리 효과) */
+    /* 2. 메인 컨텐츠 영역 글래스모피즘 */
     .block-container {
         background: rgba(255, 255, 255, 0.45);
         backdrop-filter: blur(15px);
@@ -41,7 +41,7 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.6);
     }
 
-    /* 3. 헤더 영역 업그레이드 (반짝이는 빛 효과 추가) */
+    /* 3. 헤더 영역 업그레이드 */
     .fromis-header {
         text-align: center;
         padding: 30px 20px;
@@ -55,7 +55,6 @@ st.markdown("""
         overflow: hidden;
     }
     
-    /* 헤더 대각선 빛 애니메이션 */
     .fromis-header::before {
         content: '';
         position: absolute;
@@ -99,7 +98,7 @@ st.markdown("""
         margin: 8px 0;
     }
 
-    /* 선택지(라디오 버튼) 디자인 */
+    /* 선택지 라디오 버튼 */
     div[data-testid="stRadio"] > label { 
         font-weight: 800 !important; 
         color: #2D3748 !important; 
@@ -114,7 +113,7 @@ st.markdown("""
         box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
     }
 
-    /* 4. 정답 제출 버튼 디자인 (입체감 + 호버 시 떠오르는 효과) */
+    /* 정답 제출 버튼 */
     .stButton>button {
         background: linear-gradient(135deg, #FF7597 0%, #FF4B8B 100%) !important;
         color: white !important;
@@ -132,6 +131,18 @@ st.markdown("""
         transform: translateY(-4px);
         box-shadow: 0 10px 25px rgba(255, 75, 139, 0.5) !important;
     }
+
+    /* 오디오 안내 박스 스타일 */
+    .audio-notice {
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 117, 151, 0.3);
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 0.8rem;
+        color: #555;
+        margin-top: 10px;
+        text-align: center;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -144,7 +155,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 곡 데이터 (프로미스나인 공식 유튜브 ID 및 5초 하이라이트 시작 시각)
+# 곡 데이터
 QUIZ_DATA = [
     {
         "yt_id": "OrrZ-TiTbPg", # Supersonic
@@ -199,7 +210,7 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 유튜브 공식 음원 5초 렌더링 함수 (모바일 브라우저 오디오 재생 지원 개선)
+# 유튜브 공식 음원 5초 렌더링 함수
 def render_youtube_5sec_player(yt_id, start_sec, q_num):
     html_code = f"""
     <!DOCTYPE html>
@@ -260,7 +271,6 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
         </div>
 
         <script>
-            // YouTube Iframe API 로드
             var tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
             var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -300,13 +310,14 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
 
                 if (timer) clearTimeout(timer);
 
-                // 사용자의 직접 터치/클릭으로 API 직접 제어 (모바일 자동재생 정책 우회)
+                // 재생 및 볼륨/음소거 해제 강제 적용
+                player.unMute();
+                player.setVolume(100);
                 player.seekTo({start_sec}, true);
                 player.playVideo();
 
                 status.innerText = "🎵 프로미스나인 공식 음원 5초 재생 중...";
 
-                // 정확히 5초 후 일시정지 처리
                 timer = setTimeout(function() {{
                     player.pauseVideo();
                     status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
@@ -322,8 +333,17 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    # 문제마다 새로고침 처리
     render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"], st.session_state.q_idx)
+
+    # 출력 기기 체크 안내 메시지
+    st.markdown("""
+    <div class="audio-notice">
+        💡 <b>소리가 들리지 않나요?</b><br>
+        • PC/모바일의 시스템 미디어 볼륨을 확인해주세요.<br>
+        • 아이폰(iOS)의 경우 무음 모드 스위치가 켜져 있으면 소리가 나지 않을 수 있습니다.<br>
+        • 블루투스 이어폰 연결 상태를 점검해주세요.
+    </div>
+    """, unsafe_allow_html=True)
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
@@ -337,11 +357,13 @@ if not st.session_state.is_finished:
             st.error(f"아쉽네요! 정답은 [{current_q['answer']}] 입니다. 😅")
 
         if st.session_state.q_idx + 1 < len(QUIZ_DATA):
-            st.session_state.q_idx += 1
-            st.button("다음 문제로 ➡️", key=f"btn_next_{st.session_state.q_idx}")
+            if st.button("다음 문제로 ➡️", key=f"btn_next_{st.session_state.q_idx}"):
+                st.session_state.q_idx += 1
+                st.rerun()
         else:
-            st.session_state.is_finished = True
-            st.button("결과 확인하기 🏆", key="btn_finish")
+            if st.button("결과 확인하기 🏆", key="btn_finish"):
+                st.session_state.is_finished = True
+                st.rerun()
 
 # 결과 화면
 else:
