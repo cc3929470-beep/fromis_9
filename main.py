@@ -199,11 +199,8 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 유튜브 공식 음원 5초 렌더링 함수
+# 유튜브 공식 음원 5초 렌더링 함수 (모바일 브라우저 오디오 재생 지원 개선)
 def render_youtube_5sec_player(yt_id, start_sec, q_num):
-    end_sec = start_sec + 5
-    embed_src = f"https://www.youtube.com/embed/{yt_id}?start={start_sec}&end={end_sec}&autoplay=1&enablejsapi=1"
-    
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -243,11 +240,12 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
                 font-weight: 700;
             }}
             .hidden-yt {{
-                width: 0;
-                height: 0;
-                opacity: 0;
-                pointer-events: none;
                 position: absolute;
+                width: 1px;
+                height: 1px;
+                opacity: 0.01;
+                overflow: hidden;
+                left: -9999px;
             }}
         </style>
     </head>
@@ -257,31 +255,62 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
             <div class="status" id="txt-status">버튼을 누르면 공식 음원이 5초간 재생됩니다.</div>
         </div>
 
-        <div id="yt-box" class="hidden-yt"></div>
+        <div class="hidden-yt">
+            <div id="player"></div>
+        </div>
 
         <script>
-            var timer = null;
-            function startPlay() {{
-                var box = document.getElementById('yt-box');
-                var status = document.getElementById('txt-status');
-                
-                // 기존 프레임 제거 및 초기화
-                box.innerHTML = '';
-                if(timer) clearTimeout(timer);
+            // YouTube Iframe API 로드
+            var tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            var firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-                // 새 문제 음원 iframe 동적 생성 (자동재생 적용)
-                var iframe = document.createElement('iframe');
-                iframe.setAttribute('src', '{embed_src}');
-                iframe.setAttribute('allow', 'autoplay');
-                box.appendChild(iframe);
+            var player;
+            var timer = null;
+            var isReady = false;
+
+            function onYouTubeIframeAPIReady() {{
+                player = new YT.Player('player', {{
+                    height: '1',
+                    width: '1',
+                    videoId: '{yt_id}',
+                    playerVars: {{
+                        'playsinline': 1,
+                        'controls': 0,
+                        'disablekb': 1,
+                        'rel': 0
+                    }},
+                    events: {{
+                        'onReady': onPlayerReady
+                    }}
+                }});
+            }}
+
+            function onPlayerReady(event) {{
+                isReady = true;
+            }}
+
+            function startPlay() {{
+                var status = document.getElementById('txt-status');
+                if (!isReady || !player) {{
+                    status.innerText = "⏳ 음원을 불러오는 중입니다. 잠시 후 다시 눌러주세요.";
+                    return;
+                }}
+
+                if (timer) clearTimeout(timer);
+
+                // 사용자의 직접 터치/클릭으로 API 직접 제어 (모바일 자동재생 정책 우회)
+                player.seekTo({start_sec}, true);
+                player.playVideo();
 
                 status.innerText = "🎵 프로미스나인 공식 음원 5초 재생 중...";
 
-                // 정확히 5.5초 후 iframe 제거하여 음악 정지
+                // 정확히 5초 후 일시정지 처리
                 timer = setTimeout(function() {{
-                    box.innerHTML = '';
+                    player.pauseVideo();
                     status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                }}, 5500);
+                }}, 5000);
             }}
         </script>
     </body>
