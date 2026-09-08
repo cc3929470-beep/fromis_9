@@ -113,7 +113,7 @@ st.markdown("""
         box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
     }
 
-    /* 정답 제출 버튼 */
+    /* 버튼 스타일링 */
     .stButton>button {
         background: linear-gradient(135deg, #FF7597 0%, #FF4B8B 100%) !important;
         color: white !important;
@@ -189,17 +189,20 @@ QUIZ_DATA = [
     }
 ]
 
+# 세션 상태 초기화
 if "q_idx" not in st.session_state:
     st.session_state.q_idx = 0
 if "score" not in st.session_state:
     st.session_state.score = 0
 if "is_finished" not in st.session_state:
     st.session_state.is_finished = False
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 유튜브 플레이어 + 출력 기기 선택 지원 컴포넌트
-def render_youtube_5sec_player(yt_id, start_sec, q_num):
+# 기기 내 스피커로 출력이 지정된 유튜브 플레이어 컴포넌트
+def render_youtube_5sec_player(yt_id, start_sec):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -231,7 +234,11 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
                 border-radius: 50px;
                 cursor: pointer;
                 box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
-                margin-bottom: 12px;
+                margin-bottom: 8px;
+                transition: transform 0.2s ease;
+            }}
+            .btn-play:active {{
+                transform: scale(0.98);
             }}
             .status {{
                 margin-top: 8px;
@@ -239,24 +246,11 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
                 color: #FF4B8B;
                 font-weight: 700;
             }}
-            .device-select-container {{
-                margin-top: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
+            .device-info {{
+                margin-top: 8px;
                 font-size: 0.8rem;
                 color: #4A5568;
                 font-weight: 600;
-            }}
-            select {{
-                padding: 6px 12px;
-                border-radius: 12px;
-                border: 1px solid #CBD5E0;
-                background-color: white;
-                font-size: 0.8rem;
-                outline: none;
-                max-width: 220px;
             }}
             .hidden-yt {{
                 position: absolute;
@@ -271,15 +265,7 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
     <body>
         <div class="card">
             <button class="btn-play" onclick="startPlay()">▶ 5초 하이라이트 듣기</button>
-            
-            <!-- 출력 기기 선택 UI -->
-            <div class="device-select-container">
-                <label for="audio-output">🔊 출력 장치:</label>
-                <select id="audio-output" onchange="changeAudioOutput(this.value)">
-                    <option value="">기본 스피커/헤드폰</option>
-                </select>
-            </div>
-
+            <div class="device-info">🔊 기기 기본 스피커/오디오 출력 사용 설정됨</div>
             <div class="status" id="txt-status">버튼을 누르면 공식 음원이 5초간 재생됩니다.</div>
         </div>
 
@@ -307,43 +293,19 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
 
             function onPlayerReady(event) {{
                 isReady = true;
-                loadAudioDevices();
+                setSpeakerOutput();
             }}
 
-            // 연결된 오디오 출력 장치 목록 로드
-            async function loadAudioDevices() {{
-                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {{
-                    return;
-                }}
-                
-                try {{
-                    // 마이크 권한 요청 등으로 deviceId 라벨 가져오기 활성화
-                    await navigator.mediaDevices.getUserMedia({{ audio: true }}).catch(() => {{}});
-                    
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
-                    const select = document.getElementById('audio-output');
-                    
-                    select.innerHTML = '<option value="">기본 기기 (Default)</option>';
-                    audioOutputs.forEach(device => {{
-                        const option = document.createElement('option');
-                        option.value = device.deviceId;
-                        option.text = device.label || `스피커 ${{select.length}}`;
-                        select.appendChild(option);
-                    }});
-                }} catch (e) {{
-                    console.log("출력 기기 목록을 가져올 수 없습니다:", e);
-                }}
-            }}
-
-            // 출력 장치 변경 적용
-            async function changeAudioOutput(deviceId) {{
+            // 기기 내 스피커(기본 출력 장치)로 설정하는 함수
+            async function setSpeakerOutput() {{
                 const iframe = document.getElementById('yt-iframe');
                 if (iframe && typeof iframe.setSinkId === 'function') {{
                     try {{
-                        await iframe.setSinkId(deviceId);
+                        // 빈 문자열("")을 전달하여 기기의 기본 스피커 출력장치로 고정
+                        await iframe.setSinkId("");
+                        console.log("기기 기본 스피커로 출력이 지정되었습니다.");
                     }} catch (error) {{
-                        console.error('출력 장치 변경 실패:', error);
+                        console.log("오디오 출력 장치 지정 알림:", error);
                     }}
                 }}
             }}
@@ -373,28 +335,38 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
     </body>
     </html>
     """
-    components.html(html_code, height=190)
+    components.html(html_code, height=160)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"], st.session_state.q_idx)
+    render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"])
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
 
     st.write("")
-    if st.button("정답 제출 🍀", key=f"btn_sub_{st.session_state.q_idx}"):
-        if user_choice == current_q["answer"]:
+    
+    # 제출하기 전 / 후 UI 분기 처리
+    if not st.session_state.submitted:
+        if st.button("정답 제출 🍀", key=f"btn_sub_{st.session_state.q_idx}"):
+            st.session_state.submitted = True
+            st.session_state.last_choice = user_choice
+            if user_choice == current_q["answer"]:
+                st.session_state.score += 10
+            st.rerun()
+    else:
+        # 결과 표시
+        if st.session_state.last_choice == current_q["answer"]:
             st.success("정답입니다! 🎉")
-            st.session_state.score += 10
         else:
             st.error(f"아쉽네요! 정답은 [{current_q['answer']}] 입니다. 😅")
 
         if st.session_state.q_idx + 1 < len(QUIZ_DATA):
             if st.button("다음 문제로 ➡️", key=f"btn_next_{st.session_state.q_idx}"):
                 st.session_state.q_idx += 1
+                st.session_state.submitted = False
                 st.rerun()
         else:
             if st.button("결과 확인하기 🏆", key="btn_finish"):
@@ -419,4 +391,5 @@ else:
         st.session_state.q_idx = 0
         st.session_state.score = 0
         st.session_state.is_finished = False
+        st.session_state.submitted = False
         st.rerun()
