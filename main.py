@@ -1,18 +1,28 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 페이지 기본 설정
+# 페이지 기본 설정 (Light 모드 강제 적용 스타일 포함)
 st.set_page_config(
     page_title="fromis_9 5초 음원 퀴즈",
     page_icon="🍀",
     layout="centered"
 )
 
-# 프로미스나인 감성 Custom CSS (업그레이드 버전)
+# 프로미스나인 감성 Custom CSS (Light 모드 고정 + 디자인 유지)
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
+    /* Light 모드 강제 고정 및 테마 배경 설정 */
+    :root {
+        color-scheme: light !important;
+    }
+    
+    html, body, [data-testid="stAppViewContainer"] {
+        color: #2D3748 !important;
+        background-color: #F7FAFC !important;
+    }
+
     * { font-family: 'Pretendard', sans-serif; }
     
     /* 1. 움직이는 파스텔 그라데이션 애니메이션 배경 */
@@ -28,9 +38,9 @@ st.markdown("""
         100% { background-position: 0% 50%; }
     }
 
-    /* 2. 메인 컨텐츠 영역 글래스모피즘 (투명 유리 효과) */
+    /* 2. 메인 컨텐츠 영역 글래스모피즘 */
     .block-container {
-        background: rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.75) !important;
         backdrop-filter: blur(15px);
         -webkit-backdrop-filter: blur(15px);
         border-radius: 30px;
@@ -38,14 +48,14 @@ st.markdown("""
         margin-top: 2rem;
         margin-bottom: 2rem;
         box-shadow: 0 8px 32px 0 rgba(142, 209, 252, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* 3. 헤더 영역 업그레이드 (반짝이는 빛 효과 추가) */
+    /* 3. 헤더 영역 */
     .fromis-header {
         text-align: center;
         padding: 30px 20px;
-        background: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(16px);
         border-radius: 28px;
         border: 2px solid rgba(255, 255, 255, 0.9);
@@ -55,7 +65,6 @@ st.markdown("""
         overflow: hidden;
     }
     
-    /* 헤더 대각선 빛 애니메이션 */
     .fromis-header::before {
         content: '';
         position: absolute;
@@ -99,7 +108,7 @@ st.markdown("""
         margin: 8px 0;
     }
 
-    /* 선택지(라디오 버튼) 디자인 */
+    /* 선택지 디자인 */
     div[data-testid="stRadio"] > label { 
         font-weight: 800 !important; 
         color: #2D3748 !important; 
@@ -107,14 +116,14 @@ st.markdown("""
     }
 
     div[role="radiogroup"] {
-        background: rgba(255, 255, 255, 0.75);
+        background: rgba(255, 255, 255, 0.85) !important;
         padding: 20px;
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.9);
         box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
     }
 
-    /* 4. 정답 제출 버튼 디자인 (입체감 + 호버 시 떠오르는 효과) */
+    /* 버튼 디자인 */
     .stButton>button {
         background: linear-gradient(135deg, #FF7597 0%, #FF4B8B 100%) !important;
         color: white !important;
@@ -144,47 +153,47 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 곡 데이터 (프로미스나인 공식 유튜브 ID 및 5초 하이라이트 시작 시각)
+# 곡 데이터 (audio_url 부분에 실제 MP3 파일 주소를 넣어야 모바일에서 백프로 재생됩니다)
 QUIZ_DATA = [
     {
-        "yt_id": "OrrZ-TiTbPg", # Supersonic
-        "start_sec": 45,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", # 예시 오디오 주소 (실제 5초 MP3 URL로 교체 가능)
+        "start_sec": 0,
         "answer": "Supersonic",
         "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
-        "yt_id": "sWyZMFmTfQs", # WE GO
-        "start_sec": 35,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+        "start_sec": 0,
         "answer": "WE GO",
         "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
     },
     {
-        "yt_id": "J_Ou8BsADlA", # Sky Runner
-        "start_sec": 20,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+        "start_sec": 0,
         "answer": "Sky Runner",
         "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
     },
     {
-        "yt_id": "hFVehbANxQE", # Vitamin Me
-        "start_sec": 30,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+        "start_sec": 0,
         "answer": "Vitamin Me",
         "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
     },
     {
-        "yt_id": "4pXfGL4tiTE", # I Like You Better
-        "start_sec": 25,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+        "start_sec": 0,
         "answer": "I Like You Better",
         "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
     },
     {
-        "yt_id": "gkJsrDEVask", # 하얀 그리움
-        "start_sec": 40,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+        "start_sec": 0,
         "answer": "하얀 그리움",
         "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
     },
     {
-        "yt_id": "ZuCc2Oi2fM0", # From
-        "start_sec": 30,
+        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
+        "start_sec": 0,
         "answer": "From",
         "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
@@ -199,8 +208,8 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 유튜브 공식 음원 5초 렌더링 함수 (모바일 브라우저 오디오 재생 지원 개선)
-def render_youtube_5sec_player(yt_id, start_sec, q_num):
+# 모바일 호환 오디오 플레이어 함수
+def render_audio_5sec_player(audio_url, start_sec):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -232,6 +241,7 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
                 border-radius: 50px;
                 cursor: pointer;
                 box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
+                outline: none;
             }}
             .status {{
                 margin-top: 10px;
@@ -239,78 +249,43 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
                 color: #FF4B8B;
                 font-weight: 700;
             }}
-            .hidden-yt {{
-                position: absolute;
-                width: 1px;
-                height: 1px;
-                opacity: 0.01;
-                overflow: hidden;
-                left: -9999px;
-            }}
         </style>
     </head>
     <body>
         <div class="card">
-            <button class="btn-play" onclick="startPlay()">▶ 5초 하이라이트 듣기</button>
-            <div class="status" id="txt-status">버튼을 누르면 공식 음원이 5초간 재생됩니다.</div>
+            <button class="btn-play" onclick="playAudio()">▶ 5초 하이라이트 듣기</button>
+            <div class="status" id="txt-status">버튼을 누르면 음원이 5초간 재생됩니다.</div>
         </div>
 
-        <div class="hidden-yt">
-            <div id="player"></div>
-        </div>
+        <audio id="myAudio" preload="auto">
+            <source src="{audio_url}" type="audio/mpeg">
+        </audio>
 
         <script>
-            // YouTube Iframe API 로드
-            var tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            var firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-            var player;
+            var audio = document.getElementById('myAudio');
             var timer = null;
-            var isReady = false;
 
-            function onYouTubeIframeAPIReady() {{
-                player = new YT.Player('player', {{
-                    height: '1',
-                    width: '1',
-                    videoId: '{yt_id}',
-                    playerVars: {{
-                        'playsinline': 1,
-                        'controls': 0,
-                        'disablekb': 1,
-                        'rel': 0
-                    }},
-                    events: {{
-                        'onReady': onPlayerReady
-                    }}
-                }});
-            }}
-
-            function onPlayerReady(event) {{
-                isReady = true;
-            }}
-
-            function startPlay() {{
+            function playAudio() {{
                 var status = document.getElementById('txt-status');
-                if (!isReady || !player) {{
-                    status.innerText = "⏳ 음원을 불러오는 중입니다. 잠시 후 다시 눌러주세요.";
-                    return;
-                }}
-
+                
                 if (timer) clearTimeout(timer);
-
-                // 사용자의 직접 터치/클릭으로 API 직접 제어 (모바일 자동재생 정책 우회)
-                player.seekTo({start_sec}, true);
-                player.playVideo();
-
-                status.innerText = "🎵 프로미스나인 공식 음원 5초 재생 중...";
-
-                // 정확히 5초 후 일시정지 처리
-                timer = setTimeout(function() {{
-                    player.pauseVideo();
-                    status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                }}, 5000);
+                
+                audio.currentTime = {start_sec};
+                
+                // 유저의 터치/클릭 이벤트 핸들러 내부에서 바로 play() 호출 (모바일 브라우저 보안 허용 조건)
+                var playPromise = audio.play();
+                
+                if (playPromise !== undefined) {{
+                    playPromise.then(function() {{
+                        status.innerText = "🎵 음원 5초 재생 중...";
+                        timer = setTimeout(function() {{
+                            audio.pause();
+                            status.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
+                        }}, 5000);
+                    }}).catch(function(error) {{
+                        status.innerText = "⚠️ 재생 실패: 음원 링크를 확인해 주세요.";
+                    }});
+                }}
             }}
         </script>
     </body>
@@ -322,8 +297,7 @@ def render_youtube_5sec_player(yt_id, start_sec, q_num):
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    # 문제마다 새로고침 처리
-    render_youtube_5sec_player(current_q["yt_id"], current_q["start_sec"], st.session_state.q_idx)
+    render_audio_5sec_player(current_q["audio_url"], current_q["start_sec"])
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
