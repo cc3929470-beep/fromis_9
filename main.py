@@ -208,8 +208,8 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 확실하게 작동하는 오디오 플레이어 함수
-def render_audio_5sec_player(audio_url, start_sec, key_id):
+# 오류를 수정한 오디오 플레이어 함수
+def render_audio_5sec_player(audio_url, start_sec):
     html_code = f"""
     <!DOCTYPE html>
     <html>
@@ -253,18 +253,17 @@ def render_audio_5sec_player(audio_url, start_sec, key_id):
     </head>
     <body>
         <div class="card">
-            <button class="btn-play" onclick="playAudio_{key_id}()">▶ 5초 하이라이트 듣기</button>
-            <div class="status" id="txt-status-{key_id}">버튼을 누르면 음원이 5초간 재생됩니다.</div>
+            <button class="btn-play" onclick="playAudio()">▶ 5초 하이라이트 듣기</button>
+            <div class="status" id="txt-status">버튼을 누르면 음원이 5초간 재생됩니다.</div>
         </div>
 
         <script>
             var currentAudio = null;
             var currentTimer = null;
 
-            function playAudio_{key_id}() {{
-                var status = document.getElementById('txt-status-{key_id}');
+            function playAudio() {{
+                var status = document.getElementById('txt-status');
                 
-                // 기존 재생 중인 오디오 정지
                 if (currentAudio) {{
                     currentAudio.pause();
                     currentAudio = null;
@@ -275,7 +274,6 @@ def render_audio_5sec_player(audio_url, start_sec, key_id):
 
                 status.innerText = "⏳ 음원을 불러오는 중...";
 
-                // 버튼 클릭 이벤트 내부에서 직접 Audio 객체 생성 (모바일 및 PC 제약 우회)
                 currentAudio = new Audio('{audio_url}');
                 currentAudio.crossOrigin = "anonymous";
                 currentAudio.currentTime = {start_sec};
@@ -283,7 +281,6 @@ def render_audio_5sec_player(audio_url, start_sec, key_id):
                 currentAudio.play().then(function() {{
                     status.innerText = "🎵 음원 5초 재생 중...";
                     
-                    // 정확히 5초 후 일시정지
                     currentTimer = setTimeout(function() {{
                         if (currentAudio) {{
                             currentAudio.pause();
@@ -299,14 +296,14 @@ def render_audio_5sec_player(audio_url, start_sec, key_id):
     </body>
     </html>
     """
-    components.html(html_code, height=140, key=f"comp_{key_id}")
+    # key 매개변수를 제거하여 TypeError 해결
+    components.html(html_code, height=140)
 
 # 게임 진행 화면
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    # 문제마다 고유한 key 전달
-    render_audio_5sec_player(current_q["audio_url"], current_q["start_sec"], st.session_state.q_idx)
+    render_audio_5sec_player(current_q["audio_url"], current_q["start_sec"])
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
