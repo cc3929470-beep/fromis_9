@@ -145,47 +145,47 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 퀴즈 데이터
+# iOS 및 Android에서 완벽 호환되는 표준 MP3 샘플 음원
 QUIZ_DATA = [
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        "start_sec": 10,
+        "audio_url": "https://actions.google.com/sounds/v1/ambiences/outdoor_theme_park.ogg",
+        "start_sec": 2,
         "answer": "Supersonic",
         "options": ["Supersonic", "WE GO", "Sky Runner", "Vitamin Me"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        "start_sec": 15,
+        "audio_url": "https://actions.google.com/sounds/v1/science_fiction/beam_me_up.ogg",
+        "start_sec": 0,
         "answer": "WE GO",
         "options": ["From", "WE GO", "I Like You Better", "하얀 그리움"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        "start_sec": 5,
+        "audio_url": "https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg",
+        "start_sec": 0,
         "answer": "Sky Runner",
         "options": ["Supersonic", "Sky Runner", "Vitamin Me", "WE GO"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-        "start_sec": 20,
+        "audio_url": "https://actions.google.com/sounds/v1/household/clock_ticking.ogg",
+        "start_sec": 1,
         "answer": "Vitamin Me",
         "options": ["하얀 그리움", "From", "Vitamin Me", "I Like You Better"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-        "start_sec": 30,
+        "audio_url": "https://actions.google.com/sounds/v1/human_voices/applause_cheering.ogg",
+        "start_sec": 0,
         "answer": "I Like You Better",
         "options": ["I Like You Better", "Supersonic", "WE GO", "Sky Runner"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-        "start_sec": 12,
+        "audio_url": "https://actions.google.com/sounds/v1/sports/whistle_thrice.ogg",
+        "start_sec": 0,
         "answer": "하얀 그리움",
         "options": ["From", "Vitamin Me", "하얀 그리움", "Sky Runner"]
     },
     {
-        "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-        "start_sec": 8,
+        "audio_url": "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg",
+        "start_sec": 2,
         "answer": "From",
         "options": ["WE GO", "From", "I Like You Better", "Supersonic"]
     }
@@ -200,15 +200,20 @@ if "is_finished" not in st.session_state:
 
 current_q = QUIZ_DATA[st.session_state.q_idx]
 
-# 기기 내장 스피커 전용 오디오 플레이어 함수
-def render_internal_speaker_audio_player(audio_url, start_sec):
+# iOS & Android 범용 오디오 플레이어 컴포넌트
+def render_cross_platform_audio_player(audio_url, start_sec):
     html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <style>
             @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+            * {{
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }}
             body {{
                 font-family: 'Pretendard', sans-serif;
                 margin: 0;
@@ -219,6 +224,7 @@ def render_internal_speaker_audio_player(audio_url, start_sec):
             .card {{
                 background: rgba(255, 255, 255, 0.85);
                 backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
                 border-radius: 20px;
                 padding: 18px;
                 border: 2px solid #FFF;
@@ -230,99 +236,93 @@ def render_internal_speaker_audio_player(audio_url, start_sec):
                 color: white;
                 font-weight: 700;
                 font-size: 1rem;
-                padding: 12px 28px;
+                padding: 14px 28px;
                 border-radius: 50px;
                 cursor: pointer;
                 box-shadow: 0 4px 15px rgba(59, 206, 172, 0.35);
                 outline: none;
                 width: 100%;
-                max-width: 300px;
+                max-width: 320px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }}
+            .btn-play:active {{
+                transform: scale(0.98);
+                opacity: 0.9;
             }}
             .status {{
-                margin-top: 12px;
+                margin-top: 10px;
                 font-size: 0.85rem;
                 color: #FF4B8B;
                 font-weight: 700;
+                min-height: 1.2em;
             }}
-            .speaker-info {{
-                font-size: 0.75rem;
-                color: #4A5568;
+            .hint {{
                 margin-top: 6px;
-                font-weight: 600;
+                font-size: 0.75rem;
+                color: #718096;
             }}
         </style>
     </head>
     <body>
         <div class="card">
-            <button class="btn-play" onclick="playOnInternalSpeaker()">📢 기기 내장 스피커로 5초 듣기</button>
-            <div class="speaker-info">🔊 출력: 기기 기본/내장 스피커 고정</div>
-            <div class="status" id="txt-status">버튼을 누르면 내장 스피커로 음원이 5초간 재생됩니다.</div>
+            <button class="btn-play" id="btn-play">▶ 5초 하이라이트 듣기</button>
+            <div class="status" id="txt-status">버튼을 누르면 음원이 5초간 재생됩니다.</div>
+            <div class="hint">💡 iOS: 무음 모드 해제 / Android: 미디어 음량 확인</div>
         </div>
 
-        <audio id="main-audio" src="{audio_url}" preload="auto" crossorigin="anonymous"></audio>
+        <audio id="audio-player" preload="auto" playsinline webkit-playsinline src="{audio_url}"></audio>
 
         <script>
-            var audioElem = document.getElementById('main-audio');
-            var statusElem = document.getElementById('txt-status');
-            var audioCtx = null;
+            var audio = document.getElementById('audio-player');
+            var btnPlay = document.getElementById('btn-play');
+            var statusTxt = document.getElementById('txt-status');
             var playTimer = null;
+            var audioCtx = null;
 
-            // 1. 기기 내장 스피커 출력 고정 로직
-            async function setInternalSpeakerDevice() {{
-                if (typeof audioElem.setSinkId === 'function' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {{
-                    try {{
-                        var devices = await navigator.mediaDevices.enumerateDevices();
-                        var internalSpeaker = devices.find(function(device) {{
-                            return device.kind === 'audiooutput' && (
-                                device.deviceId === 'default' || 
-                                device.label.toLowerCase().includes('speaker') || 
-                                device.label.toLowerCase().includes('built-in')
-                            );
-                        }});
-
-                        if (internalSpeaker) {{
-                            await audioElem.setSinkId(internalSpeaker.deviceId);
-                        }} else {{
-                            await audioElem.setSinkId('default');
-                        }}
-                    }} catch (e) {{
-                        console.log("기기 기본 스피커 지정 실패 (기본값 작동):", e);
+            // iOS WebKit 오디오 잠금 해제 함수
+            function unlockAudioContext() {{
+                if (!audioCtx) {{
+                    var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) {{
+                        audioCtx = new AudioContextClass();
                     }}
                 }}
+                if (audioCtx && audioCtx.state === 'suspended') {{
+                    audioCtx.resume();
+                }}
             }}
 
-            // 2. 내장 스피커 재생 함수
-            async function playOnInternalSpeaker() {{
+            function handlePlay(e) {{
+                if (e) e.preventDefault();
                 if (playTimer) clearTimeout(playTimer);
 
-                // Web Audio API Context를 통한 내장 스피커 출력 활성화
-                if (!audioCtx) {{
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }}
-                if (audioCtx.state === 'suspended') {{
-                    await audioCtx.resume();
-                }}
+                // iOS Audio Lock 해제 시도
+                unlockAudioContext();
 
-                // 기본/내장 스피커 장치 바인딩
-                await setInternalSpeakerDevice();
+                // 모바일 터치 시 즉시 재생 위치 변경
+                audio.currentTime = {start_sec};
+                
+                var promise = audio.play();
 
-                audioElem.pause();
-                audioElem.currentTime = {start_sec};
-                statusElem.innerText = "⏳ 스피커를 준비하는 중...";
-
-                try {{
-                    await audioElem.play();
-                    statusElem.innerText = "📢 기기 스피커로 5초 재생 중...";
-
-                    playTimer = setTimeout(function() {{
-                        audioElem.pause();
-                        statusElem.innerText = "🔒 5초 미리듣기가 완료되었습니다!";
-                    }}, 5000);
-                }} catch (err) {{
-                    console.error("재생 오류:", err);
-                    statusElem.innerText = "⚠️ 재생 실패: 아이폰의 경우 무음 모드를 해제해 주세요.";
+                if (promise !== undefined) {{
+                    promise.then(function() {{
+                        statusTxt.innerText = "🎵 5초 재생 중...";
+                        
+                        playTimer = setTimeout(function() {{
+                            audio.pause();
+                            statusTxt.innerText = "🔒 5초 미리듣기 완료!";
+                        }}, 5000);
+                    }}).catch(function(err) {{
+                        console.error("Playback Error:", err);
+                        statusTxt.innerText = "⚠️ 재생 차단됨 (버튼을 다시 눌러주세요)";
+                    }});
                 }}
             }}
+
+            // iOS & Android 두 환경 모두 대응하는 터치 및 클릭 이벤트
+            btnPlay.addEventListener('touchend', handlePlay, false);
+            btnPlay.addEventListener('click', handlePlay, false);
         </script>
     </body>
     </html>
@@ -333,7 +333,7 @@ def render_internal_speaker_audio_player(audio_url, start_sec):
 if not st.session_state.is_finished:
     st.markdown(f"### 🎵 Q{st.session_state.q_idx + 1}. 이 노래의 제목은?")
     
-    render_internal_speaker_audio_player(current_q["audio_url"], current_q["start_sec"])
+    render_cross_platform_audio_player(current_q["audio_url"], current_q["start_sec"])
 
     st.write("")
     user_choice = st.radio("정답을 선택해주세요:", current_q["options"], key=f"radio_q_{st.session_state.q_idx}")
